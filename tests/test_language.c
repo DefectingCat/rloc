@@ -223,7 +223,8 @@ int main(void) {
     register_test("test_detect_go_by_extension", test_func_test_detect_go_by_extension);
     register_test("test_detect_rust_by_extension", test_func_test_detect_rust_by_extension);
     register_test("test_detect_java_by_extension", test_func_test_detect_java_by_extension);
-    register_test("test_detect_typescript_by_extension", test_func_test_detect_typescript_by_extension);
+    register_test("test_detect_typescript_by_extension",
+                  test_func_test_detect_typescript_by_extension);
     register_test("test_detect_typescript_tsx_by_extension",
                   test_func_test_detect_typescript_tsx_by_extension);
     register_test("test_detect_ruby_by_extension", test_func_test_detect_ruby_by_extension);
@@ -231,7 +232,8 @@ int main(void) {
     register_test("test_detect_csharp_by_extension", test_func_test_detect_csharp_by_extension);
     register_test("test_detect_swift_by_extension", test_func_test_detect_swift_by_extension);
     register_test("test_detect_kotlin_by_extension", test_func_test_detect_kotlin_by_extension);
-    register_test("test_detect_kotlin_kts_by_extension", test_func_test_detect_kotlin_kts_by_extension);
+    register_test("test_detect_kotlin_kts_by_extension",
+                  test_func_test_detect_kotlin_kts_by_extension);
     register_test("test_detect_perl_by_extension", test_func_test_detect_perl_by_extension);
     register_test("test_detect_perl_pm_by_extension", test_func_test_detect_perl_pm_by_extension);
 

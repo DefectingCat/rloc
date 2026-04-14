@@ -21,8 +21,8 @@ static int compare_language_names(const void* a, const void* b) {
 }
 
 /* Helper: Aggregate stats by language */
-static void aggregate_by_language(const FileStats* files, int n_files,
-                                   LanguageStats* lang_stats, int* n_languages) {
+static void aggregate_by_language(const FileStats* files, int n_files, LanguageStats* lang_stats,
+                                  int* n_languages) {
     *n_languages = 0;
 
     // First pass: collect all unique languages
@@ -67,9 +67,8 @@ static void aggregate_by_language(const FileStats* files, int n_files,
 }
 
 /* Helper: Calculate totals */
-static void calculate_totals(const LanguageStats* lang_stats, int n_languages,
-                              int* total_files, int* total_blank,
-                              int* total_comment, int* total_code) {
+static void calculate_totals(const LanguageStats* lang_stats, int n_languages, int* total_files,
+                             int* total_blank, int* total_comment, int* total_code) {
     *total_files = 0;
     *total_blank = 0;
     *total_comment = 0;
@@ -98,8 +97,8 @@ void output_text(const FileStats* files, int n_files, double elapsed_sec) {
     aggregate_by_language(files, n_files, lang_stats, &n_languages);
 
     int total_files, total_blank, total_comment, total_code;
-    calculate_totals(lang_stats, n_languages, &total_files, &total_blank,
-                     &total_comment, &total_code);
+    calculate_totals(lang_stats, n_languages, &total_files, &total_blank, &total_comment,
+                     &total_code);
 
     // Count files including unknown
     int n_total = n_files;
@@ -169,8 +168,8 @@ void output_text_by_file(const FileStats* files, int n_files, double elapsed_sec
     printf("\n");
 
     double files_per_sec = (elapsed_sec > 0) ? (n_valid / elapsed_sec) : 0.0;
-    printf("https://github.com/rloc/rloc v 0.1.0  T=%.2f s (%.1f files/s)\n",
-           elapsed_sec, files_per_sec);
+    printf("https://github.com/rloc/rloc v 0.1.0  T=%.2f s (%.1f files/s)\n", elapsed_sec,
+           files_per_sec);
     printf("\n");
 
     printf("%-40s %10s %10s %10s %10s\n", "File", "blank", "comment", "code", "language");
@@ -181,14 +180,12 @@ void output_text_by_file(const FileStats* files, int n_files, double elapsed_sec
         const char* filename = files[i].filepath;
         // Truncate long filenames
         if (strlen(filename) > 38) {
-            printf("...%-37s %10d %10d %10d %s\n",
-                   filename + strlen(filename) - 35,
-                   files[i].counts.blank, files[i].counts.comment,
-                   files[i].counts.code, files[i].lang->name);
+            printf("...%-37s %10d %10d %10d %s\n", filename + strlen(filename) - 35,
+                   files[i].counts.blank, files[i].counts.comment, files[i].counts.code,
+                   files[i].lang->name);
         } else {
-            printf("%-40s %10d %10d %10d %s\n",
-                   filename, files[i].counts.blank, files[i].counts.comment,
-                   files[i].counts.code, files[i].lang->name);
+            printf("%-40s %10d %10d %10d %s\n", filename, files[i].counts.blank,
+                   files[i].counts.comment, files[i].counts.code, files[i].lang->name);
         }
     }
     printf("\n");
@@ -201,13 +198,13 @@ void output_json(const FileStats* files, int n_files, double elapsed_sec) {
     aggregate_by_language(files, n_files, lang_stats, &n_languages);
 
     int total_files, total_blank, total_comment, total_code;
-    calculate_totals(lang_stats, n_languages, &total_files, &total_blank,
-                     &total_comment, &total_code);
+    calculate_totals(lang_stats, n_languages, &total_files, &total_blank, &total_comment,
+                     &total_code);
 
     int n_valid = count_valid_files(files, n_files);
     double files_per_sec = (elapsed_sec > 0) ? (n_valid / elapsed_sec) : 0.0;
-    double lines_per_sec = (elapsed_sec > 0) ?
-        ((total_blank + total_comment + total_code) / elapsed_sec) : 0.0;
+    double lines_per_sec =
+        (elapsed_sec > 0) ? ((total_blank + total_comment + total_code) / elapsed_sec) : 0.0;
 
     printf("{\n");
     printf("  \"header\" : {\n");
@@ -290,14 +287,13 @@ void output_csv(const FileStats* files, int n_files, double elapsed_sec) {
 
     printf("files,language,blank,comment,code\n");
     for (int i = 0; i < n_languages; i++) {
-        printf("%d,%s,%d,%d,%d\n",
-               lang_stats[i].files, lang_stats[i].name,
-               lang_stats[i].blank, lang_stats[i].comment, lang_stats[i].code);
+        printf("%d,%s,%d,%d,%d\n", lang_stats[i].files, lang_stats[i].name, lang_stats[i].blank,
+               lang_stats[i].comment, lang_stats[i].code);
     }
 
     int total_files, total_blank, total_comment, total_code;
-    calculate_totals(lang_stats, n_languages, &total_files, &total_blank,
-                     &total_comment, &total_code);
+    calculate_totals(lang_stats, n_languages, &total_files, &total_blank, &total_comment,
+                     &total_code);
     printf("%d,SUM,%d,%d,%d\n", total_files, total_blank, total_comment, total_code);
 }
 
@@ -306,9 +302,8 @@ void output_csv_by_file(const FileStats* files, int n_files, double elapsed_sec)
     printf("language,filename,blank,comment,code\n");
     for (int i = 0; i < n_files; i++) {
         if (files[i].lang == NULL) continue;
-        printf("%s,%s,%d,%d,%d\n",
-               files[i].lang->name, files[i].filepath,
-               files[i].counts.blank, files[i].counts.comment, files[i].counts.code);
+        printf("%s,%s,%d,%d,%d\n", files[i].lang->name, files[i].filepath, files[i].counts.blank,
+               files[i].counts.comment, files[i].counts.code);
     }
 }
 
@@ -321,7 +316,8 @@ void output_md(const FileStats* files, int n_files, double elapsed_sec) {
     int n_valid = count_valid_files(files, n_files);
 
     double files_per_sec = (elapsed_sec > 0) ? (n_valid / elapsed_sec) : 0.0;
-    printf("cloc|github.com/rloc/rloc v 0.1.0  T=%.2f s (%.1f files/s)\n", elapsed_sec, files_per_sec);
+    printf("cloc|github.com/rloc/rloc v 0.1.0  T=%.2f s (%.1f files/s)\n", elapsed_sec,
+           files_per_sec);
     printf("--- | ---\n\n");
 
     printf("| Language | files | blank | comment | code |\n");
@@ -330,14 +326,13 @@ void output_md(const FileStats* files, int n_files, double elapsed_sec) {
     qsort(lang_stats, n_languages, sizeof(LanguageStats), compare_language_names);
 
     for (int i = 0; i < n_languages; i++) {
-        printf("| %s | %d | %d | %d | %d |\n",
-               lang_stats[i].name, lang_stats[i].files,
+        printf("| %s | %d | %d | %d | %d |\n", lang_stats[i].name, lang_stats[i].files,
                lang_stats[i].blank, lang_stats[i].comment, lang_stats[i].code);
     }
 
     int total_files, total_blank, total_comment, total_code;
-    calculate_totals(lang_stats, n_languages, &total_files, &total_blank,
-                     &total_comment, &total_code);
+    calculate_totals(lang_stats, n_languages, &total_files, &total_blank, &total_comment,
+                     &total_code);
     printf("| SUM: | %d | %d | %d | %d |\n", total_files, total_blank, total_comment, total_code);
 }
 
@@ -346,7 +341,8 @@ void output_md_by_file(const FileStats* files, int n_files, double elapsed_sec) 
     int n_valid = count_valid_files(files, n_files);
 
     double files_per_sec = (elapsed_sec > 0) ? (n_valid / elapsed_sec) : 0.0;
-    printf("cloc|github.com/rloc/rloc v 0.1.0  T=%.2f s (%.1f files/s)\n", elapsed_sec, files_per_sec);
+    printf("cloc|github.com/rloc/rloc v 0.1.0  T=%.2f s (%.1f files/s)\n", elapsed_sec,
+           files_per_sec);
     printf("--- | ---\n\n");
 
     printf("| File | blank | comment | code | language |\n");
@@ -354,8 +350,7 @@ void output_md_by_file(const FileStats* files, int n_files, double elapsed_sec) 
 
     for (int i = 0; i < n_files; i++) {
         if (files[i].lang == NULL) continue;
-        printf("| %s | %d | %d | %d | %s |\n",
-               files[i].filepath, files[i].counts.blank,
+        printf("| %s | %d | %d | %d | %s |\n", files[i].filepath, files[i].counts.blank,
                files[i].counts.comment, files[i].counts.code, files[i].lang->name);
     }
 }
