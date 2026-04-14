@@ -1,6 +1,19 @@
 #ifndef CLI_H
 #define CLI_H
 
+#include "vcs.h"  // For VcsType enum
+
+// Output format enumeration
+typedef enum {
+    FORMAT_TEXT,   // Default text table
+    FORMAT_JSON,   // JSON output
+    FORMAT_CSV,    // CSV output
+    FORMAT_MD      // Markdown output
+} OutputFormat;
+
+// VCS type is defined in vcs.h
+// VcsType: VCS_NONE, VCS_GIT, VCS_SVN, VCS_AUTO
+
 typedef struct {
     char** input_files;     // Array of file paths (dynamically allocated)
     int n_input_files;      // Number of input files
@@ -18,6 +31,9 @@ typedef struct {
     int n_include_exts;     // Number of include extensions
     char** exclude_exts;    // --exclude-ext=ext1,ext2
     int n_exclude_exts;     // Number of exclude extensions
+    OutputFormat output_format;  // --json, --csv, --md
+    int by_file;            // --by-file flag
+    VcsType vcs;            // --vcs=git/svn/auto
 } CliArgs;
 
 // Parse command line arguments. Returns 0 on success, -1 on error.

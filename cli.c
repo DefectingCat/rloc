@@ -22,6 +22,9 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
     args->n_include_exts = 0;
     args->exclude_exts = NULL;
     args->n_exclude_exts = 0;
+    args->output_format = FORMAT_TEXT;  // Default text format
+    args->by_file = 0;                  // Default off
+    args->vcs = VCS_NONE;               // Default no VCS
 
     // Allocate initial array for input files
     int capacity = 16;
@@ -38,6 +41,27 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
             args->show_version = 1;
         } else if (strcmp(argv[i], "--no-recurse") == 0) {
             args->no_recurse = 1;
+        } else if (strcmp(argv[i], "--json") == 0) {
+            args->output_format = FORMAT_JSON;
+        } else if (strcmp(argv[i], "--csv") == 0) {
+            args->output_format = FORMAT_CSV;
+        } else if (strcmp(argv[i], "--md") == 0) {
+            args->output_format = FORMAT_MD;
+        } else if (strcmp(argv[i], "--by-file") == 0) {
+            args->by_file = 1;
+        } else if (strncmp(argv[i], "--vcs=", 6) == 0) {
+            const char* vcs_value = argv[i] + 6;
+            if (strcmp(vcs_value, "git") == 0) {
+                args->vcs = VCS_GIT;
+            } else if (strcmp(vcs_value, "svn") == 0) {
+                args->vcs = VCS_SVN;
+            } else if (strcmp(vcs_value, "auto") == 0) {
+                args->vcs = VCS_AUTO;
+            } else {
+                fprintf(stderr, "Error: Unknown VCS type '%s'\n", vcs_value);
+                free(args->input_files);
+                return -1;
+            }
         } else if (strncmp(argv[i], "--max-file-size=", 16) == 0) {
             args->max_file_size_mb = atol(argv[i] + 16);
         } else if (strncmp(argv[i], "--exclude-dir=", 14) == 0) {
@@ -339,6 +363,11 @@ void cli_print_help(const char* prog_name) {
         "  --include-ext=EXT   Include only specified extensions "
         "(comma-separated)\n");
     printf("  --exclude-ext=EXT   Exclude specified extensions (comma-separated)\n");
+    printf("  --json              Output in JSON format\n");
+    printf("  --csv               Output in CSV format\n");
+    printf("  --md                Output in Markdown format\n");
+    printf("  --by-file           Report statistics for each file\n");
+    printf("  --vcs=git|svn|auto  Use VCS to get file list (respects .gitignore)\n");
 }
 
 void cli_print_version(void) { printf("rloc 0.1.0\n"); }

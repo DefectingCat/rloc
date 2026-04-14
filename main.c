@@ -13,6 +13,7 @@
 #include "output.h"
 #include "strlit.h"
 #include "util.h"
+#include "vcs.h"
 
 /* Helper: Get file extension from path */
 static const char* get_extension(const char* filepath) {
@@ -89,44 +90,133 @@ int main(int argc, char** argv) {
     // Start timer
     clock_t start_time = clock();
 
+    // Resolve VCS type if auto-detect
+    VcsType effective_vcs = args.vcs;
+    if (args.vcs == VCS_AUTO) {
+        // Auto-detect VCS for each input path
+        for (int i = 0; i < args.n_input_files; i++) {
+            const char* path = args.input_files[i];
+            if (is_directory(path)) {
+                effective_vcs = vcs_detect(path);
+                if (effective_vcs != VCS_NONE) {
+                    break;
+                }
+            }
+        }
+    }
+
     // Process each input path
     int error_count = 0;
-    for (int i = 0; i < args.n_input_files; i++) {
-        const char* path = args.input_files[i];
 
-        if (is_directory(path)) {
-            // Scan directory recursively or non-recursively
-            if (filelist_scan(path, &config, &filelist) != 0) {
-                fprintf(stderr, "Error: Cannot scan directory '%s'\n", path);
-                error_count++;
-            }
-        } else if (is_regular_file(path)) {
-            // Add single file directly
-            if (filelist.count >= filelist.capacity) {
-                // Expand capacity (simple implementation: double it)
-                int new_capacity = (filelist.capacity == 0) ? 16 : filelist.capacity * 2;
-                char** new_paths = realloc(filelist.paths, new_capacity * sizeof(char*));
-                if (!new_paths) {
+    // Handle VCS-based file discovery
+    if (effective_vcs == VCS_GIT) {
+        // Use git ls-files for file discovery
+        for (int i = 0; i < args.n_input_files; i++) {
+            const char* path = args.input_files[i];
+
+            if (is_directory(path)) {
+                // Get files from git
+                int n_vcs_files = 0;
+                char** vcs_files = vcs_get_files_git(path, &n_vcs_files);
+                if (!vcs_files || n_vcs_files == 0) {
+                    fprintf(stderr, "Error: Cannot get git files from '%s'\n", path);
+                    error_count++;
+                    continue;
+                }
+
+                // Add files to filelist
+                for (int j = 0; j < n_vcs_files; j++) {
+                    if (filelist.count >= filelist.capacity) {
+                        int new_capacity = (filelist.capacity == 0) ? 16 : filelist.capacity * 2;
+                        char** new_paths = realloc(filelist.paths, new_capacity * sizeof(char*));
+                        if (!new_paths) {
+                            fprintf(stderr, "Error: Memory allocation failed\n");
+                            vcs_free_files(vcs_files, n_vcs_files);
+                            filelist_free(&filelist);
+                            cli_free(&args);
+                            return 1;
+                        }
+                        filelist.paths = new_paths;
+                        filelist.capacity = new_capacity;
+                    }
+                    // Build full path
+                    char full_path[2048];
+                    snprintf(full_path, sizeof(full_path), "%s/%s", path, vcs_files[j]);
+                    filelist.paths[filelist.count] = strdup(full_path);
+                    if (!filelist.paths[filelist.count]) {
+                        fprintf(stderr, "Error: Memory allocation failed\n");
+                        vcs_free_files(vcs_files, n_vcs_files);
+                        filelist_free(&filelist);
+                        cli_free(&args);
+                        return 1;
+                    }
+                    filelist.count++;
+                }
+                vcs_free_files(vcs_files, n_vcs_files);
+            } else {
+                // Single file - add directly
+                fprintf(stderr, "Warning: --vcs=git only works on directories, treating '%s' as regular file\n", path);
+                if (filelist.count >= filelist.capacity) {
+                    int new_capacity = (filelist.capacity == 0) ? 16 : filelist.capacity * 2;
+                    char** new_paths = realloc(filelist.paths, new_capacity * sizeof(char*));
+                    if (!new_paths) {
+                        fprintf(stderr, "Error: Memory allocation failed\n");
+                        filelist_free(&filelist);
+                        cli_free(&args);
+                        return 1;
+                    }
+                    filelist.paths = new_paths;
+                    filelist.capacity = new_capacity;
+                }
+                filelist.paths[filelist.count] = strdup(path);
+                if (!filelist.paths[filelist.count]) {
                     fprintf(stderr, "Error: Memory allocation failed\n");
                     filelist_free(&filelist);
                     cli_free(&args);
                     return 1;
                 }
-                filelist.paths = new_paths;
-                filelist.capacity = new_capacity;
+                filelist.count++;
             }
-            // Duplicate the path string
-            filelist.paths[filelist.count] = strdup(path);
-            if (!filelist.paths[filelist.count]) {
-                fprintf(stderr, "Error: Memory allocation failed\n");
-                filelist_free(&filelist);
-                cli_free(&args);
-                return 1;
+        }
+    } else {
+        // Regular file scanning (non-VCS mode)
+        for (int i = 0; i < args.n_input_files; i++) {
+            const char* path = args.input_files[i];
+
+            if (is_directory(path)) {
+                // Scan directory recursively or non-recursively
+                if (filelist_scan(path, &config, &filelist) != 0) {
+                    fprintf(stderr, "Error: Cannot scan directory '%s'\n", path);
+                    error_count++;
+                }
+            } else if (is_regular_file(path)) {
+                // Add single file directly
+                if (filelist.count >= filelist.capacity) {
+                    // Expand capacity (simple implementation: double it)
+                    int new_capacity = (filelist.capacity == 0) ? 16 : filelist.capacity * 2;
+                    char** new_paths = realloc(filelist.paths, new_capacity * sizeof(char*));
+                    if (!new_paths) {
+                        fprintf(stderr, "Error: Memory allocation failed\n");
+                        filelist_free(&filelist);
+                        cli_free(&args);
+                        return 1;
+                    }
+                    filelist.paths = new_paths;
+                    filelist.capacity = new_capacity;
+                }
+                // Duplicate the path string
+                filelist.paths[filelist.count] = strdup(path);
+                if (!filelist.paths[filelist.count]) {
+                    fprintf(stderr, "Error: Memory allocation failed\n");
+                    filelist_free(&filelist);
+                    cli_free(&args);
+                    return 1;
+                }
+                filelist.count++;
+            } else {
+                fprintf(stderr, "Error: Path '%s' is not a valid file or directory\n", path);
+                error_count++;
             }
-            filelist.count++;
-        } else {
-            fprintf(stderr, "Error: Path '%s' is not a valid file or directory\n", path);
-            error_count++;
         }
     }
 
@@ -229,7 +319,37 @@ int main(int argc, char** argv) {
     double elapsed_sec = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
     // Output results
-    output_text(files, filelist.count, elapsed_sec);
+    switch (args.output_format) {
+        case FORMAT_JSON:
+            if (args.by_file) {
+                output_json_by_file(files, filelist.count, elapsed_sec);
+            } else {
+                output_json(files, filelist.count, elapsed_sec);
+            }
+            break;
+        case FORMAT_CSV:
+            if (args.by_file) {
+                output_csv_by_file(files, filelist.count, elapsed_sec);
+            } else {
+                output_csv(files, filelist.count, elapsed_sec);
+            }
+            break;
+        case FORMAT_MD:
+            if (args.by_file) {
+                output_md_by_file(files, filelist.count, elapsed_sec);
+            } else {
+                output_md(files, filelist.count, elapsed_sec);
+            }
+            break;
+        case FORMAT_TEXT:
+        default:
+            if (args.by_file) {
+                output_text_by_file(files, filelist.count, elapsed_sec);
+            } else {
+                output_text(files, filelist.count, elapsed_sec);
+            }
+            break;
+    }
 
     // Cleanup
     free(files);
