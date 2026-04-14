@@ -1,0 +1,13 @@
+/* CSS block comment */
+body {
+    color: red;
+    margin: 10px;
+}
+
+/*
+ * Multi-line CSS comment
+ * Line 2
+ */
+div {
+    padding: 5px;
+}
