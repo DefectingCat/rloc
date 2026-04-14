@@ -1,3 +1,7 @@
 .omc/
 cloc/
 rloc
+
+# Build artifacts
+*.o
+*_runner
