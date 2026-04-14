@@ -12,7 +12,6 @@
 #include "filelist.h"
 #include "language.h"
 #include "output.h"
-#include "strlit.h"
 #include "util.h"
 #include "vcs.h"
 
@@ -345,8 +344,8 @@ int main(int argc, char** argv) {
             error_count++;
         }
 
-        // Print warning for unrecognized files
-        if (lang == NULL) {
+        // Print warning for unrecognized files (unless --quiet)
+        if (lang == NULL && !args.quiet) {
             fprintf(stderr, "Warning: Unrecognized language for file '%s'\n", filepath);
         }
     }

@@ -27,6 +27,7 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
     args->vcs = VCS_NONE;               // Default no VCS
     args->diff_commit1 = NULL;          // Default no diff
     args->diff_commit2 = NULL;          // Default no diff
+    args->quiet = 0;                    // Default not quiet
 
     // Allocate initial array for input files
     int capacity = 16;
@@ -51,6 +52,8 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
             args->output_format = FORMAT_MD;
         } else if (strcmp(argv[i], "--by-file") == 0) {
             args->by_file = 1;
+        } else if (strcmp(argv[i], "--quiet") == 0) {
+            args->quiet = 1;
         } else if (strncmp(argv[i], "--diff=", 7) == 0) {
             const char* diff_value = argv[i] + 7;
             // Look for .. separator
@@ -398,6 +401,9 @@ void cli_print_help(const char* prog_name) {
     printf("  --by-file           Report statistics for each file\n");
     printf("  --vcs=git|svn|auto  Use VCS to get file list (respects .gitignore)\n");
     printf("  --diff=COMMIT..COMMIT Compare changes between commits (git diff)\n");
+    printf("  --quiet             Suppress warning messages\n");
 }
 
-void cli_print_version(void) { printf("rloc 0.1.0\n"); }
+void cli_print_version(void) {
+    printf("rloc 0.1.0 (24 languages, built on %s %s)\n", __DATE__, __TIME__);
+}
