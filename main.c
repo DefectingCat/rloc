@@ -109,17 +109,25 @@ int main(int argc, char** argv) {
     int error_count = 0;
 
     // Handle VCS-based file discovery
-    if (effective_vcs == VCS_GIT) {
-        // Use git ls-files for file discovery
+    if (effective_vcs == VCS_GIT || effective_vcs == VCS_SVN) {
+        // Use VCS for file discovery
         for (int i = 0; i < args.n_input_files; i++) {
             const char* path = args.input_files[i];
 
             if (is_directory(path)) {
-                // Get files from git
+                // Get files from VCS
                 int n_vcs_files = 0;
-                char** vcs_files = vcs_get_files_git(path, &n_vcs_files);
+                char** vcs_files = NULL;
+
+                if (effective_vcs == VCS_GIT) {
+                    vcs_files = vcs_get_files_git(path, &n_vcs_files);
+                } else if (effective_vcs == VCS_SVN) {
+                    vcs_files = vcs_get_files_svn(path, &n_vcs_files);
+                }
+
                 if (!vcs_files || n_vcs_files == 0) {
-                    fprintf(stderr, "Error: Cannot get git files from '%s'\n", path);
+                    fprintf(stderr, "Error: Cannot get %s files from '%s'\n",
+                            effective_vcs == VCS_GIT ? "git" : "svn", path);
                     error_count++;
                     continue;
                 }
@@ -155,7 +163,9 @@ int main(int argc, char** argv) {
                 vcs_free_files(vcs_files, n_vcs_files);
             } else {
                 // Single file - add directly
-                fprintf(stderr, "Warning: --vcs=git only works on directories, treating '%s' as regular file\n", path);
+                fprintf(stderr,
+                        "Warning: --vcs only works on directories, treating '%s' as regular file\n",
+                        path);
                 if (filelist.count >= filelist.capacity) {
                     int new_capacity = (filelist.capacity == 0) ? 16 : filelist.capacity * 2;
                     char** new_paths = realloc(filelist.paths, new_capacity * sizeof(char*));
