@@ -108,6 +108,18 @@ int main(int argc, char** argv) {
     config.max_file_size = (args.max_file_size_mb > 0 ? args.max_file_size_mb : 100) * 1024 * 1024;
     config.exclude_dirs = args.exclude_dirs;
     config.n_exclude_dirs = args.n_exclude_dirs;
+    config.exclude_patterns = NULL;
+    config.n_exclude_patterns = 0;
+
+    // Load exclude patterns from file if specified
+    if (args.exclude_list_file) {
+        if (filelist_load_exclude_patterns(args.exclude_list_file, &config) != 0) {
+            fprintf(stderr, "Error: Cannot load exclude patterns from '%s'\n",
+                    args.exclude_list_file);
+            cli_free(&args);
+            return 1;
+        }
+    }
 
     // Initialize FileList
     FileList filelist;
@@ -390,6 +402,7 @@ int main(int argc, char** argv) {
     // Cleanup
     free(files);
     filelist_free(&filelist);
+    filelist_free_exclude_patterns(&config);
     cli_free(&args);
 
     return (error_count > 0) ? 1 : 0;

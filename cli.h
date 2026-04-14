@@ -36,6 +36,7 @@ typedef struct {
     VcsType vcs;                 // --vcs=git/svn/auto
     char* diff_commit1;          // --diff=<commit1>..<commit2> (first commit)
     char* diff_commit2;          // --diff=<commit1>..<commit2> (second commit, NULL if single)
+    char* exclude_list_file;     // --exclude-list-file=<path> (file with exclude patterns)
     int quiet;                   // --quiet flag (suppress warnings)
 } CliArgs;
 

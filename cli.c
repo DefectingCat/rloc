@@ -27,6 +27,7 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
     args->vcs = VCS_NONE;               // Default no VCS
     args->diff_commit1 = NULL;          // Default no diff
     args->diff_commit2 = NULL;          // Default no diff
+    args->exclude_list_file = NULL;     // Default no exclude list file
     args->quiet = 0;                    // Default not quiet
 
     // Allocate initial array for input files
@@ -54,6 +55,8 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
             args->by_file = 1;
         } else if (strcmp(argv[i], "--quiet") == 0) {
             args->quiet = 1;
+        } else if (strncmp(argv[i], "--exclude-list-file=", 20) == 0) {
+            args->exclude_list_file = strdup(argv[i] + 20);
         } else if (strncmp(argv[i], "--diff=", 7) == 0) {
             const char* diff_value = argv[i] + 7;
             // Look for .. separator
@@ -375,6 +378,10 @@ void cli_free(CliArgs* args) {
         free(args->diff_commit2);
         args->diff_commit2 = NULL;
     }
+    if (args->exclude_list_file) {
+        free(args->exclude_list_file);
+        args->exclude_list_file = NULL;
+    }
 }
 
 void cli_print_help(const char* prog_name) {
@@ -395,6 +402,7 @@ void cli_print_help(const char* prog_name) {
         "  --include-ext=EXT   Include only specified extensions "
         "(comma-separated)\n");
     printf("  --exclude-ext=EXT   Exclude specified extensions (comma-separated)\n");
+    printf("  --exclude-list-file=FILE Read exclude patterns from file (one per line)\n");
     printf("  --json              Output in JSON format\n");
     printf("  --csv               Output in CSV format\n");
     printf("  --md                Output in Markdown format\n");
