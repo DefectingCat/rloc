@@ -1,8 +1,9 @@
-#include "../counter.h"
-#include "test_framework.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "../counter.h"
+#include "test_framework.h"
 
 TEST(test_empty_file) {
     CountResult result;
@@ -15,7 +16,7 @@ TEST(test_empty_file) {
 
 TEST(test_all_blank) {
     CountResult result;
-    const char *input = "\n\n\n\n\n\n\n\n\n\n";  // 10 blank lines
+    const char* input = "\n\n\n\n\n\n\n\n\n\n";  // 10 blank lines
     count_lines(input, strlen(input), &result);
     ASSERT_EQ(result.blank, 10);
     ASSERT_EQ(result.comment, 0);
@@ -25,7 +26,7 @@ TEST(test_all_blank) {
 
 TEST(test_all_code) {
     CountResult result;
-    const char *input = "int main() {\nreturn 0;\n}\n";  // 3 lines of code + 1 blank
+    const char* input = "int main() {\nreturn 0;\n}\n";  // 3 lines of code + 1 blank
     count_lines(input, strlen(input), &result);
     ASSERT_EQ(result.blank, 0);
     ASSERT_EQ(result.comment, 0);
@@ -35,7 +36,7 @@ TEST(test_all_code) {
 
 TEST(test_mixed) {
     CountResult result;
-    const char *input = "\nint x;\nint y;\nint z;\n\n";  // blank, 3 code, blank
+    const char* input = "\nint x;\nint y;\nint z;\n\n";  // blank, 3 code, blank
     count_lines(input, strlen(input), &result);
     ASSERT_EQ(result.blank, 2);
     ASSERT_EQ(result.comment, 0);
@@ -45,7 +46,7 @@ TEST(test_mixed) {
 
 TEST(test_trailing_newline) {
     CountResult result;
-    const char *input = "hello\n";  // 1 line of code
+    const char* input = "hello\n";  // 1 line of code
     count_lines(input, strlen(input), &result);
     ASSERT_EQ(result.blank, 0);
     ASSERT_EQ(result.comment, 0);
@@ -55,7 +56,7 @@ TEST(test_trailing_newline) {
 
 TEST(test_no_trailing_newline) {
     CountResult result;
-    const char *input = "hello";  // 1 line of code, no trailing newline
+    const char* input = "hello";  // 1 line of code, no trailing newline
     count_lines(input, strlen(input), &result);
     ASSERT_EQ(result.blank, 0);
     ASSERT_EQ(result.comment, 0);
@@ -65,7 +66,7 @@ TEST(test_no_trailing_newline) {
 
 TEST(test_blank_with_spaces) {
     CountResult result;
-    const char *input = "   \n\t\n";  // 2 blank lines with spaces/tabs
+    const char* input = "   \n\t\n";  // 2 blank lines with spaces/tabs
     count_lines(input, strlen(input), &result);
     ASSERT_EQ(result.blank, 2);
     ASSERT_EQ(result.comment, 0);

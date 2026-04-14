@@ -1,10 +1,11 @@
-#include "../strlit.h"
-#include "test_framework.h"
 #include <stdio.h>
 #include <string.h>
 
+#include "../strlit.h"
+#include "test_framework.h"
+
 TEST(test_no_strings) {
-    const char *input = "int x = 5;\nint y = 10;";
+    const char* input = "int x = 5;\nint y = 10;";
     char output[100];
     size_t len = strip_string_literals(input, strlen(input), output, "\"'", "\\");
     ASSERT_EQ(len, strlen(input));
@@ -12,15 +13,15 @@ TEST(test_no_strings) {
 }
 
 TEST(test_double_quote_string) {
-    const char *input = "int x = 5;\nconst char *s = \"hello world\";";
+    const char* input = "int x = 5;\nconst char *s = \"hello world\";";
     char output[100];
     size_t len = strip_string_literals(input, strlen(input), output, "\"'", "\\");
     ASSERT_EQ(len, strlen(input));
     // Check that string delimiters are preserved
     ASSERT_TRUE(strstr(output, "\"hello world\"") != NULL);
     // Check that content between quotes is replaced with spaces
-    const char *quote_start = strchr(output, '"');
-    const char *quote_end = strchr(quote_start + 1, '"');
+    const char* quote_start = strchr(output, '"');
+    const char* quote_end = strchr(quote_start + 1, '"');
     int content_len = quote_end - quote_start - 1;
     int space_count = 0;
     for (int i = 0; i < content_len; i++) {
@@ -30,7 +31,7 @@ TEST(test_double_quote_string) {
 }
 
 TEST(test_single_quote_char) {
-    const char *input = "char c = 'a';";
+    const char* input = "char c = 'a';";
     char output[100];
     size_t len = strip_string_literals(input, strlen(input), output, "\"'", "\\");
     ASSERT_EQ(len, strlen(input));
@@ -39,24 +40,24 @@ TEST(test_single_quote_char) {
 }
 
 TEST(test_escaped_quote) {
-    const char *input = "const char *s = \"hello \\\"world\\\"\"";
+    const char* input = "const char *s = \"hello \\\"world\\\"\"";
     char output[100];
     size_t len = strip_string_literals(input, strlen(input), output, "\"'", "\\");
     ASSERT_EQ(len, strlen(input));
     // Escaped quotes should not end the string
-    const char *first_quote = strchr(output, '"');
-    const char *last_quote = strrchr(output, '"');
+    const char* first_quote = strchr(output, '"');
+    const char* last_quote = strrchr(output, '"');
     ASSERT_TRUE(last_quote > first_quote);
 }
 
 TEST(test_comment_in_string) {
-    const char *input = "const char *s = \"/* not comment */\";";
+    const char* input = "const char *s = \"/* not comment */\";";
     char output[100];
     size_t len = strip_string_literals(input, strlen(input), output, "\"'", "\\");
     ASSERT_EQ(len, strlen(input));
     // Comment markers inside string should be hidden (replaced with spaces)
-    const char *quote_start = strchr(output, '"');
-    const char *quote_end = strchr(quote_start + 1, '"');
+    const char* quote_start = strchr(output, '"');
+    const char* quote_end = strchr(quote_start + 1, '"');
     ASSERT_TRUE(quote_end != NULL);
     // Content should be spaces
     int content_len = quote_end - quote_start - 1;
@@ -68,7 +69,7 @@ TEST(test_comment_in_string) {
 }
 
 TEST(test_multiline_string) {
-    const char *input = "const char *s = \"line1\nline2\";";
+    const char* input = "const char *s = \"line1\nline2\";";
     char output[100];
     size_t len = strip_string_literals(input, strlen(input), output, "\"'", "\\");
     ASSERT_EQ(len, strlen(input));
@@ -77,7 +78,7 @@ TEST(test_multiline_string) {
 }
 
 TEST(test_empty_string) {
-    const char *input = "const char *s = \"\";";
+    const char* input = "const char *s = \"\";";
     char output[100];
     size_t len = strip_string_literals(input, strlen(input), output, "\"'", "\\");
     ASSERT_EQ(len, strlen(input));

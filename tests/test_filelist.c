@@ -1,16 +1,17 @@
-#include "../filelist.h"
-#include "../util.h"
-#include "test_framework.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/stat.h>
+#include <unistd.h>
+
+#include "../filelist.h"
+#include "../util.h"
+#include "test_framework.h"
 
 TEST(test_scan_single_file) {
     // Create a temporary test file
-    const char *test_file = "/tmp/rloc_test_file.c";
-    FILE *f = fopen(test_file, "w");
+    const char* test_file = "/tmp/rloc_test_file.c";
+    FILE* f = fopen(test_file, "w");
     ASSERT_TRUE(f != NULL);
     fprintf(f, "#include <stdio.h>\n\nint main() {\n    return 0;\n}\n");
     fclose(f);
@@ -36,11 +37,11 @@ TEST(test_scan_directory_recursive) {
     // Create temporary directory structure
     system("mkdir -p /tmp/rloc_test_dir/subdir");
 
-    FILE *f1 = fopen("/tmp/rloc_test_dir/file1.c", "w");
+    FILE* f1 = fopen("/tmp/rloc_test_dir/file1.c", "w");
     fprintf(f1, "int main() { return 0; }\n");
     fclose(f1);
 
-    FILE *f2 = fopen("/tmp/rloc_test_dir/subdir/file2.c", "w");
+    FILE* f2 = fopen("/tmp/rloc_test_dir/subdir/file2.c", "w");
     fprintf(f2, "void func() {}\n");
     fclose(f2);
 
@@ -67,11 +68,11 @@ TEST(test_no_recurse_option) {
     // Create temporary directory structure
     system("mkdir -p /tmp/rloc_test_norecurse/subdir");
 
-    FILE *f1 = fopen("/tmp/rloc_test_norecurse/file1.c", "w");
+    FILE* f1 = fopen("/tmp/rloc_test_norecurse/file1.c", "w");
     fprintf(f1, "int main() { return 0; }\n");
     fclose(f1);
 
-    FILE *f2 = fopen("/tmp/rloc_test_norecurse/subdir/file2.c", "w");
+    FILE* f2 = fopen("/tmp/rloc_test_norecurse/subdir/file2.c", "w");
     fprintf(f2, "void func() {}\n");
     fclose(f2);
 
@@ -109,11 +110,11 @@ TEST(test_exclude_dir_option) {
     system("mkdir -p /tmp/rloc_test_exclude/excluded_dir");
     system("mkdir -p /tmp/rloc_test_exclude/included_dir");
 
-    FILE *f1 = fopen("/tmp/rloc_test_exclude/excluded_dir/file1.c", "w");
+    FILE* f1 = fopen("/tmp/rloc_test_exclude/excluded_dir/file1.c", "w");
     fprintf(f1, "int main() { return 0; }\n");
     fclose(f1);
 
-    FILE *f2 = fopen("/tmp/rloc_test_exclude/included_dir/file2.c", "w");
+    FILE* f2 = fopen("/tmp/rloc_test_exclude/included_dir/file2.c", "w");
     fprintf(f2, "void func() {}\n");
     fclose(f2);
 
@@ -125,8 +126,8 @@ TEST(test_exclude_dir_option) {
     config.max_file_size = 1024 * 1024;
 
     // Exclude "excluded_dir"
-    const char *excludes[] = {"excluded_dir"};
-    config.exclude_dirs = (char **)excludes;
+    const char* excludes[] = {"excluded_dir"};
+    config.exclude_dirs = (char**)excludes;
     config.n_exclude_dirs = 1;
 
     int result = filelist_scan("/tmp/rloc_test_exclude", &config, &list);

@@ -23,15 +23,23 @@ test_language_runner: tests/test_language.c tests/test_framework.c language.c la
 test_strlit_runner: tests/test_strlit.c tests/test_framework.c strlit.c
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_strlit.c tests/test_framework.c strlit.c
 
-test: test_runner test_filelist_runner test_language_runner test_strlit_runner
+test_block_comments_runner: tests/test_block_comments.c tests/test_framework.c counter.c strlit.c language.c lang_defs.c
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_block_comments.c tests/test_framework.c counter.c strlit.c language.c lang_defs.c
+
+test_continuation_runner: tests/test_continuation.c tests/test_framework.c counter.c strlit.c language.c lang_defs.c
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_continuation.c tests/test_framework.c counter.c strlit.c language.c lang_defs.c
+
+test: test_runner test_filelist_runner test_language_runner test_strlit_runner test_block_comments_runner test_continuation_runner
 	./test_runner
 	./test_filelist_runner
 	./test_language_runner
 	./test_strlit_runner
+	./test_block_comments_runner
+	./test_continuation_runner
 
 # Clean target
 clean:
-	rm -f rloc test_runner test_filelist_runner test_language_runner test_strlit_runner
+	rm -f rloc test_runner test_filelist_runner test_language_runner test_strlit_runner test_block_comments_runner test_continuation_runner
 
 # Format target
 fmt:

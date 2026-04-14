@@ -1,25 +1,26 @@
 #include "output.h"
+
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define MAX_LANGUAGES 50
 
 typedef struct {
-    const char *name;
+    const char* name;
     int files;
     int blank;
     int comment;
     int code;
 } LanguageStats;
 
-static int compare_language_names(const void *a, const void *b) {
-    const LanguageStats *la = (const LanguageStats *)a;
-    const LanguageStats *lb = (const LanguageStats *)b;
+static int compare_language_names(const void* a, const void* b) {
+    const LanguageStats* la = (const LanguageStats*)a;
+    const LanguageStats* lb = (const LanguageStats*)b;
     return strcmp(la->name, lb->name);
 }
 
-void output_text(const FileStats *files, int n_files, double elapsed_sec) {
+void output_text(const FileStats* files, int n_files, double elapsed_sec) {
     // Count unique files (all files are unique in M1)
     int n_unique_files = n_files;
     int n_ignored_files = 0;
@@ -30,7 +31,7 @@ void output_text(const FileStats *files, int n_files, double elapsed_sec) {
 
     // First pass: collect all unique languages
     for (int i = 0; i < n_files; i++) {
-        const char *lang_name = (files[i].lang != NULL) ? files[i].lang->name : "Unknown";
+        const char* lang_name = (files[i].lang != NULL) ? files[i].lang->name : "Unknown";
         int found = 0;
 
         // Check if we already have this language
@@ -54,7 +55,7 @@ void output_text(const FileStats *files, int n_files, double elapsed_sec) {
 
     // Second pass: aggregate counts
     for (int i = 0; i < n_files; i++) {
-        const char *lang_name = (files[i].lang != NULL) ? files[i].lang->name : "Unknown";
+        const char* lang_name = (files[i].lang != NULL) ? files[i].lang->name : "Unknown";
 
         for (int j = 0; j < n_languages; j++) {
             if (strcmp(lang_stats[j].name, lang_name) == 0) {
@@ -82,7 +83,8 @@ void output_text(const FileStats *files, int n_files, double elapsed_sec) {
 
     // Calculate files/s and lines/s
     double files_per_sec = (elapsed_sec > 0) ? (n_files / elapsed_sec) : 0.0;
-    double lines_per_sec = (elapsed_sec > 0) ? ((total_blank + total_comment + total_code) / elapsed_sec) : 0.0;
+    double lines_per_sec =
+        (elapsed_sec > 0) ? ((total_blank + total_comment + total_code) / elapsed_sec) : 0.0;
 
     // Print header
     printf("%5d text file%s.\n", n_files, (n_files != 1) ? "s" : "");
@@ -91,39 +93,45 @@ void output_text(const FileStats *files, int n_files, double elapsed_sec) {
     printf("\n");
 
     // Print URL line
-    printf("https://github.com/rloc/rloc v 0.1.0  T=%.2f s (%.1f files/s, %.1f lines/s)\n",
-           elapsed_sec, files_per_sec, lines_per_sec);
+    printf(
+        "https://github.com/rloc/rloc v 0.1.0  T=%.2f s (%.1f files/s, %.1f "
+        "lines/s)\n",
+        elapsed_sec, files_per_sec, lines_per_sec);
 
     // Print separator line
-    printf("-------------------------------------------------------------------------------\n");
+    printf(
+        "---------------------------------------------------------------------"
+        "----------\n");
 
     // Print column headers
     printf("%-15s %10s %10s %10s %10s\n", "Language", "files", "blank", "comment", "code");
 
     // Print separator line
-    printf("-------------------------------------------------------------------------------\n");
+    printf(
+        "---------------------------------------------------------------------"
+        "----------\n");
 
     // Sort languages alphabetically
     qsort(lang_stats, n_languages, sizeof(LanguageStats), compare_language_names);
 
     // Print each language
     for (int i = 0; i < n_languages; i++) {
-        printf("%-15s %10d %10d %10d %10d\n",
-               lang_stats[i].name,
-               lang_stats[i].files,
-               lang_stats[i].blank,
-               lang_stats[i].comment,
-               lang_stats[i].code);
+        printf("%-15s %10d %10d %10d %10d\n", lang_stats[i].name, lang_stats[i].files,
+               lang_stats[i].blank, lang_stats[i].comment, lang_stats[i].code);
     }
 
     // Print separator line
-    printf("-------------------------------------------------------------------------------\n");
+    printf(
+        "---------------------------------------------------------------------"
+        "----------\n");
 
     // Print SUM row
-    printf("%-15s %10d %10d %10d %10d\n",
-           "SUM", total_files, total_blank, total_comment, total_code);
+    printf("%-15s %10d %10d %10d %10d\n", "SUM", total_files, total_blank, total_comment,
+           total_code);
 
     // Print separator line
-    printf("-------------------------------------------------------------------------------\n");
+    printf(
+        "---------------------------------------------------------------------"
+        "----------\n");
     printf("\n");
 }

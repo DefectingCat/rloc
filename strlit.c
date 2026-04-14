@@ -1,13 +1,11 @@
 #include "strlit.h"
+
 #include <string.h>
 
-typedef enum {
-    STATE_CODE,
-    STATE_STRING
-} State;
+typedef enum { STATE_CODE, STATE_STRING } State;
 
-size_t strip_string_literals(const char *src, size_t len, char *dst,
-                              const char *delimiters, const char *escape) {
+size_t strip_string_literals(const char* src, size_t len, char* dst, const char* delimiters,
+                             const char* escape) {
     State state = STATE_CODE;
     char current_delimiter = '\0';
     size_t dst_idx = 0;
@@ -25,13 +23,14 @@ size_t strip_string_literals(const char *src, size_t len, char *dst,
             case STATE_CODE:
                 // Check if this character starts a string literal
                 if (strchr(delimiters, c) != NULL) {
-                    // Check for character literals like 'a' (single character between single quotes)
+                    // Check for character literals like 'a' (single character between
+                    // single quotes)
                     if (c == '\'' && i + 2 < len && src[i + 2] == '\'') {
                         // Skip character literal entirely
-                        dst[dst_idx++] = c;  // Copy opening quote
+                        dst[dst_idx++] = c;           // Copy opening quote
                         dst[dst_idx++] = src[i + 1];  // Copy character
-                        i += 2;  // Skip to closing quote
-                        dst[dst_idx++] = c;  // Copy closing quote
+                        i += 2;                       // Skip to closing quote
+                        dst[dst_idx++] = c;           // Copy closing quote
                         continue;
                     }
                     // Start of string literal

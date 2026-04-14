@@ -3,7 +3,7 @@
 
 #include "language.h"
 
-#define NUM_LANGUAGES 15
+#define NUM_LANGUAGES 24
 
 /* Array of all supported language definitions */
 extern const Language g_languages[NUM_LANGUAGES];

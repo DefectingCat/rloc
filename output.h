@@ -4,13 +4,13 @@
 #include "language.h"
 
 typedef struct {
-    const char *filepath;
-    const Language *lang;  // Language pointer (was: const char *language)
+    const char* filepath;
+    const Language* lang;  // Language pointer (was: const char *language)
     CountResult counts;
 } FileStats;
 
 // Output results as text table (default cloc-like format)
 // elapsed_sec: time taken for processing
-void output_text(const FileStats *files, int n_files, double elapsed_sec);
+void output_text(const FileStats* files, int n_files, double elapsed_sec);
 
 #endif

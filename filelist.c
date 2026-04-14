@@ -1,17 +1,19 @@
 #include "filelist.h"
-#include "util.h"
+
 #include <dirent.h>
-#include <sys/stat.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+
+#include "util.h"
 
 #define INITIAL_CAPACITY 32
 
-static int filelist_add(FileList *list, const char *path) {
+static int filelist_add(FileList* list, const char* path) {
     if (list->count >= list->capacity) {
         int new_capacity = list->capacity == 0 ? INITIAL_CAPACITY : list->capacity * 2;
-        char **new_paths = realloc(list->paths, new_capacity * sizeof(char *));
+        char** new_paths = realloc(list->paths, new_capacity * sizeof(char*));
         if (!new_paths) {
             return -1;
         }
@@ -28,7 +30,7 @@ static int filelist_add(FileList *list, const char *path) {
     return 0;
 }
 
-static int is_excluded_dir(const char *dir_name, const FilelistConfig *config) {
+static int is_excluded_dir(const char* dir_name, const FilelistConfig* config) {
     if (!config || !config->exclude_dirs) {
         return 0;
     }
@@ -41,14 +43,14 @@ static int is_excluded_dir(const char *dir_name, const FilelistConfig *config) {
     return 0;
 }
 
-void filelist_init(FileList *list) {
+void filelist_init(FileList* list) {
     if (!list) return;
     list->paths = NULL;
     list->count = 0;
     list->capacity = 0;
 }
 
-void filelist_free(FileList *list) {
+void filelist_free(FileList* list) {
     if (!list) return;
 
     for (int i = 0; i < list->count; i++) {
@@ -61,7 +63,7 @@ void filelist_free(FileList *list) {
     list->capacity = 0;
 }
 
-int filelist_scan(const char *path, const FilelistConfig *config, FileList *list) {
+int filelist_scan(const char* path, const FilelistConfig* config, FileList* list) {
     if (!path || !list) {
         return -1;
     }
@@ -74,18 +76,18 @@ int filelist_scan(const char *path, const FilelistConfig *config, FileList *list
         return -1;
     }
 
-    DIR *dir = opendir(path);
+    DIR* dir = opendir(path);
     if (!dir) {
         return -1;
     }
 
-    struct dirent *entry;
+    struct dirent* entry;
     while ((entry = readdir(dir)) != NULL) {
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
             continue;
         }
 
-        char *full_path = path_join(path, entry->d_name);
+        char* full_path = path_join(path, entry->d_name);
         if (!full_path) {
             continue;
         }

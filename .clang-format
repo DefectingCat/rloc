@@ -1,0 +1,12 @@
+---
+BasedOnStyle: Google
+IndentWidth: 4
+UseTab: Never
+TabWidth: 4
+ColumnLimit: 100
+---
+
+# 缩进配置
+# IndentWidth: 4 空格缩进
+# UseTab: Never 只使用空格，不使用制表符
+# TabWidth: 4 制表符宽度（影响显示）

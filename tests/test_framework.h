@@ -26,29 +26,31 @@ void register_test(const char* name, void (*func)(void));
 #define TEST(name) void test_func_##name(void)
 
 /* Assertion macros */
-#define ASSERT_EQ(a, b) do { \
-    if ((a) != (b)) { \
-        printf("  FAIL: %s == %s (%d != %d) at %s:%d\n", \
-               #a, #b, (int)(a), (int)(b), __FILE__, __LINE__); \
-        return; \
-    } \
-} while(0)
+#define ASSERT_EQ(a, b)                                                                            \
+    do {                                                                                           \
+        if ((a) != (b)) {                                                                          \
+            printf("  FAIL: %s == %s (%d != %d) at %s:%d\n", #a, #b, (int)(a), (int)(b), __FILE__, \
+                   __LINE__);                                                                      \
+            return;                                                                                \
+        }                                                                                          \
+    } while (0)
 
-#define ASSERT_STR(a, b) do { \
-    if (strcmp((a), (b)) != 0) { \
-        printf("  FAIL: %s == %s (\"%s\" != \"%s\") at %s:%d\n", \
-               #a, #b, (a), (b), __FILE__, __LINE__); \
-        return; \
-    } \
-} while(0)
+#define ASSERT_STR(a, b)                                                                         \
+    do {                                                                                         \
+        if (strcmp((a), (b)) != 0) {                                                             \
+            printf("  FAIL: %s == %s (\"%s\" != \"%s\") at %s:%d\n", #a, #b, (a), (b), __FILE__, \
+                   __LINE__);                                                                    \
+            return;                                                                              \
+        }                                                                                        \
+    } while (0)
 
-#define ASSERT_TRUE(cond) do { \
-    if (!(cond)) { \
-        printf("  FAIL: %s is false at %s:%d\n", \
-               #cond, __FILE__, __LINE__); \
-        return; \
-    } \
-} while(0)
+#define ASSERT_TRUE(cond)                                                        \
+    do {                                                                         \
+        if (!(cond)) {                                                           \
+            printf("  FAIL: %s is false at %s:%d\n", #cond, __FILE__, __LINE__); \
+            return;                                                              \
+        }                                                                        \
+    } while (0)
 
 /* Test runner */
 void run_all_tests(void);
