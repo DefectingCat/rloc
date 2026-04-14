@@ -354,3 +354,25 @@ void output_md_by_file(const FileStats* files, int n_files, double elapsed_sec) 
                files[i].counts.comment, files[i].counts.code, files[i].lang->name);
     }
 }
+
+/* Output diff results */
+void output_diff(const DiffFileStats* files, int n_files, const char* commit1, const char* commit2,
+                 int by_file) {
+    int total_added = 0, total_removed = 0;
+    for (int i = 0; i < n_files; i++) {
+        total_added += files[i].added;
+        total_removed += files[i].removed;
+    }
+
+    printf("Comparing %s..%s\n\n", commit1, commit2);
+    printf("%d files changed, %d lines added, %d lines removed\n\n", n_files, total_added,
+           total_removed);
+
+    if (by_file) {
+        printf("%-40s %10s %10s\n", "File", "Added", "Removed");
+        printf("-------------------------------------------------------\n");
+        for (int i = 0; i < n_files; i++) {
+            printf("%-40s %10d %10d\n", files[i].filepath, files[i].added, files[i].removed);
+        }
+    }
+}

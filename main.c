@@ -8,6 +8,7 @@
 
 #include "cli.h"
 #include "counter.h"
+#include "diff.h"
 #include "filelist.h"
 #include "language.h"
 #include "output.h"
@@ -72,6 +73,32 @@ int main(int argc, char** argv) {
     // Handle --version flag
     if (args.show_version) {
         cli_print_version();
+        cli_free(&args);
+        return 0;
+    }
+
+    // Handle --diff mode (git diff between commits)
+    if (args.diff_commit1 != NULL && args.diff_commit2 != NULL) {
+        // Get diff files from the first input path (or current directory)
+        const char* repo_path = (args.n_input_files > 0) ? args.input_files[0] : ".";
+        if (!is_directory(repo_path)) {
+            repo_path = ".";
+        }
+
+        int n_diff_files = 0;
+        DiffFileStats* diff_files =
+            diff_get_files(repo_path, args.diff_commit1, args.diff_commit2, &n_diff_files);
+
+        if (!diff_files || n_diff_files == 0) {
+            printf("No changes between %s and %s\n", args.diff_commit1, args.diff_commit2);
+            cli_free(&args);
+            return 0;
+        }
+
+        // Output diff results
+        output_diff(diff_files, n_diff_files, args.diff_commit1, args.diff_commit2, args.by_file);
+
+        diff_free_files(diff_files, n_diff_files);
         cli_free(&args);
         return 0;
     }

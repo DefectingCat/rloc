@@ -25,6 +25,8 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
     args->output_format = FORMAT_TEXT;  // Default text format
     args->by_file = 0;                  // Default off
     args->vcs = VCS_NONE;               // Default no VCS
+    args->diff_commit1 = NULL;          // Default no diff
+    args->diff_commit2 = NULL;          // Default no diff
 
     // Allocate initial array for input files
     int capacity = 16;
@@ -49,6 +51,24 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
             args->output_format = FORMAT_MD;
         } else if (strcmp(argv[i], "--by-file") == 0) {
             args->by_file = 1;
+        } else if (strncmp(argv[i], "--diff=", 7) == 0) {
+            const char* diff_value = argv[i] + 7;
+            // Look for .. separator
+            const char* sep = strstr(diff_value, "..");
+            if (sep != NULL) {
+                // Range format: commit1..commit2
+                size_t len1 = sep - diff_value;
+                args->diff_commit1 = malloc(len1 + 1);
+                if (args->diff_commit1) {
+                    memcpy(args->diff_commit1, diff_value, len1);
+                    args->diff_commit1[len1] = '\0';
+                }
+                args->diff_commit2 = strdup(sep + 2);
+            } else {
+                // Single commit: compare against HEAD
+                args->diff_commit1 = strdup(diff_value);
+                args->diff_commit2 = strdup("HEAD");
+            }
         } else if (strncmp(argv[i], "--vcs=", 6) == 0) {
             const char* vcs_value = argv[i] + 6;
             if (strcmp(vcs_value, "git") == 0) {
@@ -343,6 +363,15 @@ void cli_free(CliArgs* args) {
         args->exclude_exts = NULL;
     }
     args->n_exclude_exts = 0;
+
+    if (args->diff_commit1) {
+        free(args->diff_commit1);
+        args->diff_commit1 = NULL;
+    }
+    if (args->diff_commit2) {
+        free(args->diff_commit2);
+        args->diff_commit2 = NULL;
+    }
 }
 
 void cli_print_help(const char* prog_name) {
@@ -368,6 +397,7 @@ void cli_print_help(const char* prog_name) {
     printf("  --md                Output in Markdown format\n");
     printf("  --by-file           Report statistics for each file\n");
     printf("  --vcs=git|svn|auto  Use VCS to get file list (respects .gitignore)\n");
+    printf("  --diff=COMMIT..COMMIT Compare changes between commits (git diff)\n");
 }
 
 void cli_print_version(void) { printf("rloc 0.1.0\n"); }

@@ -1,6 +1,7 @@
 #ifndef OUTPUT_H
 #define OUTPUT_H
 #include "counter.h"
+#include "diff.h"
 #include "language.h"
 
 typedef struct {
@@ -33,5 +34,9 @@ void output_md(const FileStats* files, int n_files, double elapsed_sec);
 
 // Output results in Markdown format with per-file breakdown
 void output_md_by_file(const FileStats* files, int n_files, double elapsed_sec);
+
+// Output diff results (added/removed lines between commits)
+void output_diff(const DiffFileStats* files, int n_files, const char* commit1, const char* commit2,
+                 int by_file);
 
 #endif

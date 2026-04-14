@@ -34,6 +34,8 @@ typedef struct {
     OutputFormat output_format;  // --json, --csv, --md
     int by_file;                 // --by-file flag
     VcsType vcs;                 // --vcs=git/svn/auto
+    char* diff_commit1;          // --diff=<commit1>..<commit2> (first commit)
+    char* diff_commit2;          // --diff=<commit1>..<commit2> (second commit, NULL if single)
 } CliArgs;
 
 // Parse command line arguments. Returns 0 on success, -1 on error.
