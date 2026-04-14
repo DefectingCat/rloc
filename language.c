@@ -15,13 +15,18 @@ static bool has_extension(const char* filepath, const char* ext) {
     size_t filepath_len = strlen(filepath);
     size_t ext_len = strlen(ext);
 
-    if (filepath_len < ext_len + 1) { /* Need at least "." + ext */
+    if (filepath_len < ext_len + 2) { /* Need at least "." + ext + one char before */
         return false;
     }
 
-    /* Check if the extension matches (case-insensitive for Windows compatibility)
-     */
-    return strcasecmp(filepath + filepath_len - ext_len, ext) == 0;
+    /* Check that there's a dot before the extension */
+    size_t dot_pos = filepath_len - ext_len - 1;
+    if (filepath[dot_pos] != '.') {
+        return false;
+    }
+
+    /* Check if the extension matches (case-insensitive for Windows compatibility) */
+    return strcasecmp(filepath + dot_pos + 1, ext) == 0;
 }
 
 /* Helper: Check if filepath has any of the comma-separated extensions */
