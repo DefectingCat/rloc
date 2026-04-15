@@ -69,6 +69,31 @@ typedef struct {
     char* extract_with;      // Custom archive extraction command
     char* skip_archive;      // Skip archives matching pattern
     int max_archive_depth;   // Maximum archive nesting depth (default 3)
+    // Phase 3 fields
+    char* git_ref;           // Git commit/branch/tag to count
+    char* list_file;         // Read input file list from FILE
+    char* force_lang;        // Force language for all files (LANG or LANG,EXT)
+    // Phase 4 fields
+    char* strip_comments;    // Extension for stripped comments output (--strip-comments=EXT)
+    char* strip_code;        // Extension for stripped code output (--strip-code=EXT)
+    int original_dir;        // Write stripped files to original directory
+    int fullpath;            // Match full path instead of basename
+    char* include_content;   // Include files containing regex content
+    char* exclude_content;   // Exclude files containing regex content
+    int timeout_sec;         // Processing timeout per file (seconds)
+    int diff_timeout_sec;    // Diff processing timeout per file (seconds)
+    char** ignore_regex_langs; // Languages for ignore-regex
+    char** ignore_regex_patterns; // Regex patterns for ignore-regex
+    int n_ignore_regex;      // Number of ignore-regex entries
+    char* lang_no_ext;       // Language for files without extension
+    char** script_langs;     // Script languages (--script-lang=LANG,S)
+    char** script_names;     // Script names (--script-lang=LANG,S)
+    int n_script_lang;       // Number of script-lang entries
+    int follow_links;        // Follow symlinks to directories
+    char* explain_lang;      // Language to explain filters for
+    char* categorized_file;  // File to save categorized info
+    char* counted_file;      // File to save counted file names
+    char* found_file;        // File to save found file names
 } CliArgs;
 
 int cli_parse(int argc, char** argv, CliArgs* args);

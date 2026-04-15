@@ -433,6 +433,12 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
             args->skip_archive = strdup(argv[i] + 15);
         } else if (strncmp(argv[i], "--max-archive-depth=", 20) == 0) {
             args->max_archive_depth = atoi(argv[i] + 20);
+        } else if (strncmp(argv[i], "--git=", 6) == 0) {
+            args->git_ref = strdup(argv[i] + 6);
+        } else if (strncmp(argv[i], "--list-file=", 12) == 0) {
+            args->list_file = strdup(argv[i] + 12);
+        } else if (strncmp(argv[i], "--force-lang=", 13) == 0) {
+            args->force_lang = strdup(argv[i] + 13);
         } else {
             // Treat as input file
             if (args->n_input_files >= capacity) {
@@ -450,8 +456,8 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
         }
     }
 
-    // Return error if no input files and no flags set
-    if (args->n_input_files == 0 && !args->show_help && !args->show_version && !args->show_lang && !args->show_ext) {
+    // Return error if no input files and no flags set (but allow --list-file to provide files later)
+    if (args->n_input_files == 0 && !args->show_help && !args->show_version && !args->show_lang && !args->show_ext && !args->list_file) {
         free(args->input_files);
         args->input_files = NULL;
         return -1;
@@ -573,6 +579,9 @@ void cli_free(CliArgs* args) {
     if (args->batch_input) { free(args->batch_input); args->batch_input = NULL; }
     if (args->extract_with) { free(args->extract_with); args->extract_with = NULL; }
     if (args->skip_archive) { free(args->skip_archive); args->skip_archive = NULL; }
+    if (args->git_ref) { free(args->git_ref); args->git_ref = NULL; }
+    if (args->list_file) { free(args->list_file); args->list_file = NULL; }
+    if (args->force_lang) { free(args->force_lang); args->force_lang = NULL; }
 }
 
 void cli_print_help(const char* prog_name) {
@@ -622,6 +631,9 @@ void cli_print_help(const char* prog_name) {
     printf("  --unique=FILE       Write unique (non-duplicate) file list to FILE\n");
     printf("  --ignored=FILE      Write ignored file list to FILE\n");
     printf("  --processes=N       Use N parallel processes (0 = auto detect)\n");
+    printf("  --git=REF           Count files at git commit/branch/tag\n");
+    printf("  --list-file=FILE    Read input file list from FILE (- for STDIN)\n");
+    printf("  --force-lang=LANG   Force language for all files (or LANG,EXT for specific ext)\n");
     printf("  --extract-with=CMD  Custom archive extraction command\n");
     printf("  --skip-archive=REGEX Skip archives matching pattern\n");
     printf("  --max-archive-depth=N Maximum archive nesting depth (default 3)\n");
