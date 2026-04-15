@@ -421,6 +421,18 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
             args->no_config = 1;
         } else if (strncmp(argv[i], "--config=", 9) == 0) {
             args->config_file = strdup(argv[i] + 9);
+        } else if (strncmp(argv[i], "--processes=", 12) == 0) {
+            args->processes = atoi(argv[i] + 12);
+        } else if (strncmp(argv[i], "--batch-input=", 14) == 0) {
+            args->batch_input = strdup(argv[i] + 14);
+        } else if (strcmp(argv[i], "--batch-output=tsv") == 0) {
+            args->batch_output_tsv = 1;
+        } else if (strncmp(argv[i], "--extract-with=", 15) == 0) {
+            args->extract_with = strdup(argv[i] + 15);
+        } else if (strncmp(argv[i], "--skip-archive=", 15) == 0) {
+            args->skip_archive = strdup(argv[i] + 15);
+        } else if (strncmp(argv[i], "--max-archive-depth=", 20) == 0) {
+            args->max_archive_depth = atoi(argv[i] + 20);
         } else {
             // Treat as input file
             if (args->n_input_files >= capacity) {
@@ -558,6 +570,9 @@ void cli_free(CliArgs* args) {
     if (args->show_ext_arg) { free(args->show_ext_arg); args->show_ext_arg = NULL; }
     if (args->unique_file) { free(args->unique_file); args->unique_file = NULL; }
     if (args->ignored_file) { free(args->ignored_file); args->ignored_file = NULL; }
+    if (args->batch_input) { free(args->batch_input); args->batch_input = NULL; }
+    if (args->extract_with) { free(args->extract_with); args->extract_with = NULL; }
+    if (args->skip_archive) { free(args->skip_archive); args->skip_archive = NULL; }
 }
 
 void cli_print_help(const char* prog_name) {
@@ -606,6 +621,10 @@ void cli_print_help(const char* prog_name) {
     printf("  --skip-uniqueness   Skip duplicate file detection via MD5\n");
     printf("  --unique=FILE       Write unique (non-duplicate) file list to FILE\n");
     printf("  --ignored=FILE      Write ignored file list to FILE\n");
+    printf("  --processes=N       Use N parallel processes (0 = auto detect)\n");
+    printf("  --extract-with=CMD  Custom archive extraction command\n");
+    printf("  --skip-archive=REGEX Skip archives matching pattern\n");
+    printf("  --max-archive-depth=N Maximum archive nesting depth (default 3)\n");
 }
 
 void cli_print_version(void) {

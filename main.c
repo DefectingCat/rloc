@@ -18,6 +18,8 @@
 #include "config.h"
 #include "lang_defs.h"
 #include "vcs.h"
+#include "temp_manager.h"
+#include "archive.h"
 
 static const char* get_extension(const char* filepath) {
     const char* ext = strrchr(filepath, '.');
@@ -83,6 +85,16 @@ int main(int argc, char** argv) {
     if (args.show_version) { cli_print_version(); cli_free(&args); return 0; }
     if (args.show_lang) { lang_show(args.show_lang_arg); cli_free(&args); return 0; }
     if (args.show_ext) { ext_show(args.show_ext_arg); cli_free(&args); return 0; }
+
+    // Initialize temp manager for archive extraction
+    TempManager temp_mgr;
+    size_t max_temp = args.max_temp_size > 0 ? args.max_temp_size : (1024 * 1024 * 1024);
+    if (temp_manager_create(&temp_mgr, max_temp) != 0) {
+        fprintf(stderr, "Error: Failed to create temp manager\n");
+        cli_free(&args);
+        return 1;
+    }
+    temp_manager_install_handlers(&temp_mgr);
 
     if (args.diff_commit1 != NULL && args.diff_commit2 != NULL) {
         const char* repo_path = (args.n_input_files > 0) ? args.input_files[0] : ".";
@@ -189,16 +201,32 @@ int main(int argc, char** argv) {
                     error_count++;
                 }
             } else if (is_regular_file(path)) {
-                if (filelist.count >= filelist.capacity) {
-                    int nc = (filelist.capacity == 0) ? 16 : filelist.capacity * 2;
-                    char** np = realloc(filelist.paths, nc * sizeof(char*));
-                    if (!np) { filelist_free(&filelist); cli_free(&args); return 1; }
-                    filelist.paths = np;
-                    filelist.capacity = nc;
+                // Check if file is an archive
+                if (archive_is_archive(path)) {
+                    // Extract archive to temp directory
+                    char* extract_dir = archive_extract(path, &temp_mgr);
+                    if (extract_dir) {
+                        // Scan extracted directory
+                        if (filelist_scan(extract_dir, &config, &filelist) != 0) {
+                            fprintf(stderr, "Warning: Cannot scan extracted archive '%s'\n", extract_dir);
+                        }
+                        // extract_dir is managed by temp_mgr, will be cleaned up on exit
+                    } else {
+                        fprintf(stderr, "Warning: Cannot extract archive '%s'\n", path);
+                    }
+                } else {
+                    // Regular file - add to list
+                    if (filelist.count >= filelist.capacity) {
+                        int nc = (filelist.capacity == 0) ? 16 : filelist.capacity * 2;
+                        char** np = realloc(filelist.paths, nc * sizeof(char*));
+                        if (!np) { filelist_free(&filelist); temp_manager_destroy(&temp_mgr); cli_free(&args); return 1; }
+                        filelist.paths = np;
+                        filelist.capacity = nc;
+                    }
+                    filelist.paths[filelist.count] = strdup(path);
+                    if (!filelist.paths[filelist.count]) { filelist_free(&filelist); temp_manager_destroy(&temp_mgr); cli_free(&args); return 1; }
+                    filelist.count++;
                 }
-                filelist.paths[filelist.count] = strdup(path);
-                if (!filelist.paths[filelist.count]) { filelist_free(&filelist); cli_free(&args); return 1; }
-                filelist.count++;
             } else {
                 fprintf(stderr, "Error: Path '%s' is not a valid file or directory\n", path);
                 error_count++;
@@ -210,6 +238,7 @@ int main(int argc, char** argv) {
     if (!files) {
         fprintf(stderr, "Error: Memory allocation failed\n");
         filelist_free(&filelist);
+        temp_manager_destroy(&temp_mgr);
         cli_free(&args);
         return 1;
     }
@@ -303,6 +332,8 @@ int main(int argc, char** argv) {
     }
 
     // Pass 3: Count lines with language awareness
+    // TODO: Parallel processing (--processes) is planned but not yet integrated
+    // Currently always uses sequential counting
     for (int i = 0; i < filelist.count; i++) {
         if (files[i].lang == NULL) continue;
 
@@ -387,6 +418,7 @@ int main(int argc, char** argv) {
     free(files);
     filelist_free(&filelist);
     filelist_free_exclude_patterns(&config);
+    temp_manager_destroy(&temp_mgr);
     cli_free(&args);
     return (error_count > 0) ? 1 : 0;
 }

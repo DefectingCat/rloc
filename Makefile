@@ -29,17 +29,25 @@ test_block_comments_runner: tests/test_block_comments.c tests/test_framework.c c
 test_continuation_runner: tests/test_continuation.c tests/test_framework.c counter.c strlit.c language.c lang_defs.c
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_continuation.c tests/test_framework.c counter.c strlit.c language.c lang_defs.c
 
-test: test_runner test_filelist_runner test_language_runner test_strlit_runner test_block_comments_runner test_continuation_runner
+test_archive_runner: tests/test_archive.c tests/test_framework.c archive.c temp_manager.c exec_helper.c
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_archive.c tests/test_framework.c archive.c temp_manager.c exec_helper.c
+
+test_temp_manager_runner: tests/test_temp_manager.c tests/test_framework.c temp_manager.c
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_temp_manager.c tests/test_framework.c temp_manager.c
+
+test: test_runner test_filelist_runner test_language_runner test_strlit_runner test_block_comments_runner test_continuation_runner test_archive_runner test_temp_manager_runner
 	./test_runner
 	./test_filelist_runner
 	./test_language_runner
 	./test_strlit_runner
 	./test_block_comments_runner
 	./test_continuation_runner
+	./test_archive_runner
+	./test_temp_manager_runner
 
 # Clean target
 clean:
-	rm -f rloc test_runner test_filelist_runner test_language_runner test_strlit_runner test_block_comments_runner test_continuation_runner
+	rm -f rloc test_runner test_filelist_runner test_language_runner test_strlit_runner test_block_comments_runner test_continuation_runner test_archive_runner test_temp_manager_runner
 
 # Format target
 fmt:

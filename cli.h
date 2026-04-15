@@ -62,6 +62,13 @@ typedef struct {
     char* show_lang_arg;
     int show_ext;
     char* show_ext_arg;
+    // Phase 2 fields
+    int processes;           // Number of parallel workers (0 = auto)
+    char* batch_input;       // Internal: worker file list input
+    int batch_output_tsv;    // Internal: worker TSV output flag
+    char* extract_with;      // Custom archive extraction command
+    char* skip_archive;      // Skip archives matching pattern
+    int max_archive_depth;   // Maximum archive nesting depth (default 3)
 } CliArgs;
 
 int cli_parse(int argc, char** argv, CliArgs* args);
