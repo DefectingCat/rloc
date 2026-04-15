@@ -1,7 +1,6 @@
 .omc/
 cloc/
-rloc
 
 # Build artifacts
+bin/
 *.o
-*_runner
