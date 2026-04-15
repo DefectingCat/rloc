@@ -15,11 +15,11 @@
 #include "output.h"
 #include "unique.h"
 #include "util.h"
-#include "config.h"
 #include "lang_defs.h"
 #include "vcs.h"
 #include "temp_manager.h"
 #include "archive.h"
+#include "parallel.h"
 
 static const char* get_extension(const char* filepath) {
     const char* ext = strrchr(filepath, '.');
@@ -86,6 +86,61 @@ int main(int argc, char** argv) {
     if (args.show_lang) { lang_show(args.show_lang_arg); cli_free(&args); return 0; }
     if (args.show_ext) { ext_show(args.show_ext_arg); cli_free(&args); return 0; }
 
+    // Handle --list-file: read input paths from file or STDIN
+    if (args.list_file != NULL) {
+        FILE* list_fp = NULL;
+        if (strcmp(args.list_file, "-") == 0) {
+            list_fp = stdin;
+        } else {
+            list_fp = fopen(args.list_file, "r");
+            if (!list_fp) {
+                fprintf(stderr, "Error: Cannot open list file '%s'\n", args.list_file);
+                cli_free(&args);
+                return 1;
+            }
+        }
+
+        // Read paths from file and add to args.input_files
+        char line[2048];
+        while (fgets(line, sizeof(line), list_fp) != NULL) {
+            // Remove trailing newline
+            size_t len = strlen(line);
+            while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
+                line[len - 1] = '\0';
+                len--;
+            }
+            if (len == 0) continue;  // Skip empty lines
+
+            // Grow input_files array if needed
+            int capacity = args.n_input_files > 0 ? args.n_input_files * 2 : 16;
+            char** new_files = realloc(args.input_files, capacity * sizeof(char*));
+            if (!new_files) {
+                fprintf(stderr, "Error: Memory allocation failed\n");
+                if (list_fp != stdin) fclose(list_fp);
+                cli_free(&args);
+                return 1;
+            }
+            args.input_files = new_files;
+            args.input_files[args.n_input_files] = strdup(line);
+            if (!args.input_files[args.n_input_files]) {
+                fprintf(stderr, "Error: Memory allocation failed\n");
+                if (list_fp != stdin) fclose(list_fp);
+                cli_free(&args);
+                return 1;
+            }
+            args.n_input_files++;
+        }
+
+        if (list_fp != stdin) fclose(list_fp);
+
+        // Check if we have any input files now
+        if (args.n_input_files == 0) {
+            fprintf(stderr, "Error: No input files found in list file '%s'\n", args.list_file);
+            cli_free(&args);
+            return 1;
+        }
+    }
+
     // Initialize temp manager for archive extraction
     TempManager temp_mgr;
     size_t max_temp = args.max_temp_size > 0 ? args.max_temp_size : (1024 * 1024 * 1024);
@@ -136,6 +191,88 @@ int main(int argc, char** argv) {
     filelist_init(&filelist);
 
     clock_t start_time = clock();
+
+    // Handle --git mode: count files at specific commit/branch/tag
+    if (args.git_ref != NULL) {
+        const char* repo_path = (args.n_input_files > 0) ? args.input_files[0] : ".";
+        if (!is_directory(repo_path)) repo_path = ".";
+
+        int n_git_files = 0;
+        char** git_files = vcs_get_files_at_commit(repo_path, args.git_ref, &n_git_files);
+        if (!git_files || n_git_files == 0) {
+            fprintf(stderr, "Error: Cannot get files at git ref '%s'\n", args.git_ref);
+            cli_free(&args);
+            return 1;
+        }
+
+        // Create temp directory for extracted files
+        char* git_extract_dir = temp_manager_create_dir(&temp_mgr, "git_extract");
+        if (!git_extract_dir) {
+            fprintf(stderr, "Error: Cannot create temp directory for git extraction\n");
+            vcs_free_files(git_files, n_git_files);
+            cli_free(&args);
+            return 1;
+        }
+
+        // Extract each file from git and add to filelist
+        for (int j = 0; j < n_git_files; j++) {
+            size_t content_len = 0;
+            char* content = vcs_get_file_at_commit(repo_path, args.git_ref, git_files[j], &content_len);
+            if (content && content_len > 0) {
+                // Write to temp file
+                char temp_path[2048];
+                snprintf(temp_path, sizeof(temp_path), "%s/%s", git_extract_dir, git_files[j]);
+
+                // Create subdirectories if needed
+                char* last_slash = strrchr(temp_path, '/');
+                if (last_slash && last_slash != temp_path) {
+                    char dir_path[2048];
+                    strncpy(dir_path, temp_path, last_slash - temp_path);
+                    dir_path[last_slash - temp_path] = '\0';
+                    // Simple mkdir -p using system call
+                    char mkdir_cmd[2048];
+                    snprintf(mkdir_cmd, sizeof(mkdir_cmd), "mkdir -p '%s' 2>/dev/null", dir_path);
+                    system(mkdir_cmd);
+                }
+
+                FILE* fp = fopen(temp_path, "w");
+                if (fp) {
+                    fwrite(content, 1, content_len, fp);
+                    fclose(fp);
+
+                    if (filelist.count >= filelist.capacity) {
+                        int nc = (filelist.capacity == 0) ? 16 : filelist.capacity * 2;
+                        char** np = realloc(filelist.paths, nc * sizeof(char*));
+                        if (!np) {
+                            free(content);
+                            vcs_free_files(git_files, n_git_files);
+                            filelist_free(&filelist);
+                            temp_manager_destroy(&temp_mgr);
+                            cli_free(&args);
+                            return 1;
+                        }
+                        filelist.paths = np;
+                        filelist.capacity = nc;
+                    }
+                    filelist.paths[filelist.count] = strdup(temp_path);
+                    if (!filelist.paths[filelist.count]) {
+                        free(content);
+                        vcs_free_files(git_files, n_git_files);
+                        filelist_free(&filelist);
+                        temp_manager_destroy(&temp_mgr);
+                        cli_free(&args);
+                        return 1;
+                    }
+                    filelist.count++;
+                }
+                free(content);
+            }
+        }
+        vcs_free_files(git_files, n_git_files);
+
+        // Skip normal file scanning for --git mode
+        goto skip_normal_scan;
+    }
 
     VcsType effective_vcs = args.vcs;
     if (args.vcs == VCS_AUTO) {
@@ -234,6 +371,9 @@ int main(int argc, char** argv) {
         }
     }
 
+skip_normal_scan:
+    ; // Empty statement before declaration (C11 compatibility)
+
     FileStats* files = malloc(filelist.count * sizeof(FileStats));
     if (!files) {
         fprintf(stderr, "Error: Memory allocation failed\n");
@@ -272,11 +412,45 @@ int main(int argc, char** argv) {
     }
 
     // Pass 2: Filter by language/extension, mark ignored files
+    // Parse --force-lang option if present
+    const Language* force_lang_all = NULL;
+    char* force_lang_ext = NULL;
+    const Language* force_lang_for_ext = NULL;
+
+    if (args.force_lang != NULL) {
+        // Check if format is LANG or LANG,EXT
+        char* comma = strchr(args.force_lang, ',');
+        if (comma) {
+            // LANG,EXT format
+            char* lang_name = strndup(args.force_lang, comma - args.force_lang);
+            force_lang_for_ext = get_language_by_name(lang_name);
+            free(lang_name);
+            force_lang_ext = strdup(comma + 1);
+        } else {
+            // LANG only - apply to all files
+            force_lang_all = get_language_by_name(args.force_lang);
+        }
+    }
+
     for (int i = 0; i < filelist.count; i++) {
         if (files[i].ignore_reason != NULL) continue;
 
         const char* filepath = files[i].filepath;
-        const Language* lang = detect_language(filepath);
+        const Language* lang = NULL;
+
+        // Apply --force-lang override
+        if (force_lang_all != NULL) {
+            lang = force_lang_all;
+        } else if (force_lang_ext != NULL && force_lang_for_ext != NULL) {
+            const char* ext = get_extension(filepath);
+            if (ext && strcasecmp(ext, force_lang_ext) == 0) {
+                lang = force_lang_for_ext;
+            } else {
+                lang = detect_language(filepath);
+            }
+        } else {
+            lang = detect_language(filepath);
+        }
 
         if (args.n_include_langs > 0) {
             if (lang == NULL || !is_in_string_array(lang->name, args.include_langs, args.n_include_langs)) {
@@ -332,31 +506,109 @@ int main(int argc, char** argv) {
     }
 
     // Pass 3: Count lines with language awareness
-    // TODO: Parallel processing (--processes) is planned but not yet integrated
-    // Currently always uses sequential counting
+    // Build list of files to count (those with identified languages)
+    int n_count_files = 0;
     for (int i = 0; i < filelist.count; i++) {
-        if (files[i].lang == NULL) continue;
+        if (files[i].lang != NULL) n_count_files++;
+    }
 
-        // Determine skip_lines for this file based on extension
-        int skip_lines = 0;
-        if (args.skip_leading > 0) {
-            if (args.n_skip_leading_exts > 0) {
-                const char* ext = get_extension(files[i].filepath);
-                if (extension_matches(ext, args.skip_leading_exts, args.n_skip_leading_exts)) {
-                    skip_lines = args.skip_leading;
-                }
-            } else {
-                skip_lines = args.skip_leading;
-            }
+    if (n_count_files > 0) {
+        // Determine number of workers
+        int n_workers = args.processes;
+        if (n_workers == 0) {
+            // Auto: use CPU count
+            ParallelConfig auto_config;
+            parallel_default_config(&auto_config);
+            n_workers = auto_config.n_workers;
         }
 
-        if (count_file_with_lang(files[i].filepath, files[i].lang, skip_lines, &files[i].counts) != 0) {
-            fprintf(stderr, "Error: Cannot read file '%s'\n", files[i].filepath);
-            files[i].counts.blank = 0;
-            files[i].counts.comment = 0;
-            files[i].counts.code = 0;
-            files[i].counts.total = 0;
-            error_count++;
+        // Use parallel processing for large file counts with multiple workers
+        if (n_workers > 1 && n_count_files >= 50) {
+            // Build array of file paths to count
+            const char** count_paths = malloc(n_count_files * sizeof(const char*));
+            if (!count_paths) {
+                fprintf(stderr, "Error: Memory allocation failed\n");
+                free(files);
+                filelist_free(&filelist);
+                filelist_free_exclude_patterns(&config);
+                temp_manager_destroy(&temp_mgr);
+                cli_free(&args);
+                return 1;
+            }
+
+            int idx = 0;
+            for (int i = 0; i < filelist.count; i++) {
+                if (files[i].lang != NULL) {
+                    count_paths[idx++] = files[i].filepath;
+                }
+            }
+
+            ParallelConfig par_config;
+            par_config.n_workers = n_workers;
+            par_config.chunk_size = 100;
+            par_config.timeout_sec = 300;
+
+            ParallelResult* par_results = malloc(n_count_files * sizeof(ParallelResult));
+            if (!par_results) {
+                free(count_paths);
+                fprintf(stderr, "Error: Memory allocation failed\n");
+                free(files);
+                filelist_free(&filelist);
+                filelist_free_exclude_patterns(&config);
+                temp_manager_destroy(&temp_mgr);
+                cli_free(&args);
+                return 1;
+            }
+
+            int n_par_results = n_count_files;
+            int par_count = parallel_count_files(count_paths, n_count_files, &par_config,
+                                                  args.skip_leading_exts, args.n_skip_leading_exts,
+                                                  args.skip_leading, par_results, &n_par_results);
+
+            // Copy results back to files array
+            for (int i = 0; i < n_par_results; i++) {
+                // Find matching file entry
+                for (int j = 0; j < filelist.count; j++) {
+                    if (strcmp(files[j].filepath, par_results[i].filepath) == 0) {
+                        files[j].counts = par_results[i].counts;
+                        break;
+                    }
+                }
+            }
+
+            free(par_results);
+            free(count_paths);
+
+            if (par_count < 0) {
+                fprintf(stderr, "Warning: Parallel processing failed, some files may not be counted\n");
+            }
+        } else {
+            // Sequential counting (fallback for small file counts or single worker)
+            for (int i = 0; i < filelist.count; i++) {
+                if (files[i].lang == NULL) continue;
+
+                // Determine skip_lines for this file based on extension
+                int skip_lines = 0;
+                if (args.skip_leading > 0) {
+                    if (args.n_skip_leading_exts > 0) {
+                        const char* ext = get_extension(files[i].filepath);
+                        if (extension_matches(ext, args.skip_leading_exts, args.n_skip_leading_exts)) {
+                            skip_lines = args.skip_leading;
+                        }
+                    } else {
+                        skip_lines = args.skip_leading;
+                    }
+                }
+
+                if (count_file_with_lang(files[i].filepath, files[i].lang, skip_lines, &files[i].counts) != 0) {
+                    fprintf(stderr, "Error: Cannot read file '%s'\n", files[i].filepath);
+                    files[i].counts.blank = 0;
+                    files[i].counts.comment = 0;
+                    files[i].counts.code = 0;
+                    files[i].counts.total = 0;
+                    error_count++;
+                }
+            }
         }
     }
 
@@ -415,6 +667,7 @@ int main(int argc, char** argv) {
     }
 
     if (report_fp) fclose(report_fp);
+    if (force_lang_ext) free(force_lang_ext);
     free(files);
     filelist_free(&filelist);
     filelist_free_exclude_patterns(&config);
