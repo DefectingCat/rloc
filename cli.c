@@ -24,10 +24,17 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
     args->n_exclude_exts = 0;
     args->output_format = FORMAT_TEXT;  // Default text format
     args->by_file = 0;                  // Default off
+    args->by_file_by_lang = 0;          // Default off
     args->vcs = VCS_NONE;               // Default no VCS
     args->diff_commit1 = NULL;          // Default no diff
     args->diff_commit2 = NULL;          // Default no diff
     args->exclude_list_file = NULL;     // Default no exclude list file
+    args->match_pattern = NULL;         // Default no match pattern
+    args->not_match_pattern = NULL;     // Default no not-match pattern
+    args->match_d_pattern = NULL;       // Default no match-d pattern
+    args->not_match_d_pattern = NULL;   // Default no not-match-d pattern
+    args->sql_file = NULL;              // Default no SQL output
+    args->report_file = NULL;           // Default stdout output
     args->quiet = 0;                    // Default not quiet
 
     // Allocate initial array for input files
@@ -51,12 +58,33 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
             args->output_format = FORMAT_CSV;
         } else if (strcmp(argv[i], "--md") == 0) {
             args->output_format = FORMAT_MD;
+        } else if (strcmp(argv[i], "--yaml") == 0) {
+            args->output_format = FORMAT_YAML;
+        } else if (strcmp(argv[i], "--xml") == 0) {
+            args->output_format = FORMAT_XML;
+        } else if (strcmp(argv[i], "--html") == 0) {
+            args->output_format = FORMAT_HTML;
         } else if (strcmp(argv[i], "--by-file") == 0) {
             args->by_file = 1;
+        } else if (strcmp(argv[i], "--by-file-by-lang") == 0) {
+            args->by_file_by_lang = 1;
         } else if (strcmp(argv[i], "--quiet") == 0) {
             args->quiet = 1;
         } else if (strncmp(argv[i], "--exclude-list-file=", 20) == 0) {
             args->exclude_list_file = strdup(argv[i] + 20);
+        } else if (strncmp(argv[i], "--match-f=", 10) == 0) {
+            args->match_pattern = strdup(argv[i] + 10);
+        } else if (strncmp(argv[i], "--not-match-f=", 14) == 0) {
+            args->not_match_pattern = strdup(argv[i] + 14);
+        } else if (strncmp(argv[i], "--match-d=", 10) == 0) {
+            args->match_d_pattern = strdup(argv[i] + 10);
+        } else if (strncmp(argv[i], "--not-match-d=", 14) == 0) {
+            args->not_match_d_pattern = strdup(argv[i] + 14);
+        } else if (strncmp(argv[i], "--sql=", 6) == 0) {
+            args->sql_file = strdup(argv[i] + 6);
+            args->output_format = FORMAT_SQL;
+        } else if (strncmp(argv[i], "--report-file=", 14) == 0) {
+            args->report_file = strdup(argv[i] + 14);
         } else if (strncmp(argv[i], "--diff=", 7) == 0) {
             const char* diff_value = argv[i] + 7;
             // Look for .. separator
@@ -382,6 +410,30 @@ void cli_free(CliArgs* args) {
         free(args->exclude_list_file);
         args->exclude_list_file = NULL;
     }
+    if (args->match_pattern) {
+        free(args->match_pattern);
+        args->match_pattern = NULL;
+    }
+    if (args->not_match_pattern) {
+        free(args->not_match_pattern);
+        args->not_match_pattern = NULL;
+    }
+    if (args->match_d_pattern) {
+        free(args->match_d_pattern);
+        args->match_d_pattern = NULL;
+    }
+    if (args->not_match_d_pattern) {
+        free(args->not_match_d_pattern);
+        args->not_match_d_pattern = NULL;
+    }
+    if (args->sql_file) {
+        free(args->sql_file);
+        args->sql_file = NULL;
+    }
+    if (args->report_file) {
+        free(args->report_file);
+        args->report_file = NULL;
+    }
 }
 
 void cli_print_help(const char* prog_name) {
@@ -403,10 +455,20 @@ void cli_print_help(const char* prog_name) {
         "(comma-separated)\n");
     printf("  --exclude-ext=EXT   Exclude specified extensions (comma-separated)\n");
     printf("  --exclude-list-file=FILE Read exclude patterns from file (one per line)\n");
+    printf("  --match-f=PATTERN   Include only files matching regex pattern\n");
+    printf("  --not-match-f=PATTERN Exclude files matching regex pattern\n");
+    printf("  --match-d=PATTERN   Include only directories matching regex pattern\n");
+    printf("  --not-match-d=PATTERN Exclude directories matching regex pattern\n");
+    printf("  --sql=FILE          Output in SQLite SQL format (\"-\" for stdout)\n");
     printf("  --json              Output in JSON format\n");
     printf("  --csv               Output in CSV format\n");
     printf("  --md                Output in Markdown format\n");
+    printf("  --yaml              Output in YAML format\n");
+    printf("  --xml               Output in XML format\n");
+    printf("  --html              Output in HTML format\n");
     printf("  --by-file           Report statistics for each file\n");
+    printf("  --by-file-by-lang   Report by file and language\n");
+    printf("  --report-file=FILE  Write output to file instead of stdout\n");
     printf("  --vcs=git|svn|auto  Use VCS to get file list (respects .gitignore)\n");
     printf("  --diff=COMMIT..COMMIT Compare changes between commits (git diff)\n");
     printf("  --quiet             Suppress warning messages\n");

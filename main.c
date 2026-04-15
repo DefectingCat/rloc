@@ -110,6 +110,10 @@ int main(int argc, char** argv) {
     config.n_exclude_dirs = args.n_exclude_dirs;
     config.exclude_patterns = NULL;
     config.n_exclude_patterns = 0;
+    config.match_pattern = args.match_pattern;
+    config.not_match_pattern = args.not_match_pattern;
+    config.match_d_pattern = args.match_d_pattern;
+    config.not_match_d_pattern = args.not_match_d_pattern;
 
     // Load exclude patterns from file if specified
     if (args.exclude_list_file) {
@@ -366,6 +370,22 @@ int main(int argc, char** argv) {
     clock_t end_time = clock();
     double elapsed_sec = (double)(end_time - start_time) / CLOCKS_PER_SEC;
 
+    // Handle --report-file: redirect stdout to file if specified
+    FILE* report_fp = NULL;
+    if (args.report_file) {
+        report_fp = fopen(args.report_file, "w");
+        if (!report_fp) {
+            fprintf(stderr, "Error: Cannot open report file '%s'\n", args.report_file);
+            free(files);
+            filelist_free(&filelist);
+            filelist_free_exclude_patterns(&config);
+            cli_free(&args);
+            return 1;
+        }
+        // Redirect stdout to the report file
+        freopen(args.report_file, "w", stdout);
+    }
+
     // Output results
     switch (args.output_format) {
         case FORMAT_JSON:
@@ -389,9 +409,39 @@ int main(int argc, char** argv) {
                 output_md(files, filelist.count, elapsed_sec);
             }
             break;
+        case FORMAT_YAML:
+            if (args.by_file) {
+                output_yaml_by_file(files, filelist.count, elapsed_sec);
+            } else {
+                output_yaml(files, filelist.count, elapsed_sec);
+            }
+            break;
+        case FORMAT_XML:
+            if (args.by_file) {
+                output_xml_by_file(files, filelist.count, elapsed_sec);
+            } else {
+                output_xml(files, filelist.count, elapsed_sec);
+            }
+            break;
+        case FORMAT_HTML:
+            if (args.by_file) {
+                output_html_by_file(files, filelist.count, elapsed_sec);
+            } else {
+                output_html(files, filelist.count, elapsed_sec);
+            }
+            break;
+        case FORMAT_SQL:
+            if (args.by_file) {
+                output_sql_by_file(files, filelist.count, elapsed_sec, NULL);
+            } else {
+                output_sql(files, filelist.count, elapsed_sec, NULL);
+            }
+            break;
         case FORMAT_TEXT:
         default:
-            if (args.by_file) {
+            if (args.by_file_by_lang) {
+                output_by_file_by_lang(files, filelist.count, elapsed_sec);
+            } else if (args.by_file) {
                 output_text_by_file(files, filelist.count, elapsed_sec);
             } else {
                 output_text(files, filelist.count, elapsed_sec);
@@ -400,6 +450,9 @@ int main(int argc, char** argv) {
     }
 
     // Cleanup
+    if (report_fp) {
+        fclose(report_fp);
+    }
     free(files);
     filelist_free(&filelist);
     filelist_free_exclude_patterns(&config);
