@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 /* Helper: Check if path is a directory */
 static int is_dir(const char* path) {
@@ -214,4 +215,164 @@ void vcs_free_files(char** files, int n_files) {
         free(files[i]);
     }
     free(files);
+}
+
+// === Git Commit Statistics Implementation ===
+
+int vcs_check_git_available(void) {
+    FILE* fp = popen("git --version 2>/dev/null", "r");
+    if (!fp) return 0;
+    char buf[64];
+    int found = (fread(buf, 1, sizeof(buf), fp) > 0);
+    pclose(fp);
+    return found;
+}
+
+char** vcs_get_files_at_commit(const char* repo_path, const char* commit, int* n_files) {
+    *n_files = 0;
+    if (!repo_path || !commit) return NULL;
+
+    char cmd[2048];
+    snprintf(cmd, sizeof(cmd), "cd '%s' && git ls-tree -r --name-only '%s' 2>/dev/null", repo_path, commit);
+
+    FILE* fp = popen(cmd, "r");
+    if (!fp) return NULL;
+
+    char buffer[65536];
+    size_t total = 0;
+    size_t chunk;
+    while ((chunk = fread(buffer + total, 1, sizeof(buffer) - total - 1, fp)) > 0) {
+        total += chunk;
+        if (total >= sizeof(buffer) - 1) break;
+    }
+    pclose(fp);
+
+    if (total == 0) return NULL;
+
+    // Count lines
+    int count = 0;
+    for (size_t i = 0; i < total; i++) {
+        if (buffer[i] == '\n') count++;
+    }
+    if (buffer[total - 1] != '\n') count++;
+
+    if (count == 0) return NULL;
+
+    char** files = malloc(count * sizeof(char*));
+    if (!files) return NULL;
+
+    int idx = 0;
+    char* start = buffer;
+    for (size_t i = 0; i < total && idx < count; i++) {
+        if (buffer[i] == '\n') {
+            size_t len = i - (start - buffer);
+            if (len > 0) {
+                files[idx] = malloc(len + 1);
+                if (files[idx]) {
+                    memcpy(files[idx], start, len);
+                    files[idx][len] = '\0';
+                    idx++;
+                }
+            }
+            start = buffer + i + 1;
+        }
+    }
+
+    *n_files = idx;
+    return files;
+}
+
+char* vcs_get_file_at_commit(const char* repo_path, const char* commit,
+                              const char* filepath, size_t* content_len) {
+    *content_len = 0;
+    if (!repo_path || !commit || !filepath) return NULL;
+
+    char cmd[2048];
+    snprintf(cmd, sizeof(cmd), "cd '%s' && git show '%s:%s' 2>/dev/null", repo_path, commit, filepath);
+
+    FILE* fp = popen(cmd, "r");
+    if (!fp) return NULL;
+
+    // Read all content
+    size_t capacity = 4096;
+    char* content = malloc(capacity);
+    if (!content) {
+        pclose(fp);
+        return NULL;
+    }
+
+    size_t total = 0;
+    size_t chunk;
+    while ((chunk = fread(content + total, 1, capacity - total, fp)) > 0) {
+        total += chunk;
+        if (total >= capacity - 1) {
+            capacity *= 2;
+            char* new_content = realloc(content, capacity);
+            if (!new_content) {
+                free(content);
+                pclose(fp);
+                return NULL;
+            }
+            content = new_content;
+        }
+    }
+    pclose(fp);
+
+    *content_len = total;
+    return content;
+}
+
+char** vcs_get_diff_files(const char* repo_path, const char* commit1,
+                          const char* commit2, int* n_files) {
+    *n_files = 0;
+    if (!repo_path || !commit1 || !commit2) return NULL;
+
+    char cmd[2048];
+    snprintf(cmd, sizeof(cmd), "cd '%s' && git diff --name-status '%s' '%s' 2>/dev/null",
+             repo_path, commit1, commit2);
+
+    FILE* fp = popen(cmd, "r");
+    if (!fp) return NULL;
+
+    char buffer[65536];
+    size_t total = 0;
+    while (fread(buffer + total, 1, sizeof(buffer) - total - 1, fp) > 0) {
+        total += fread(buffer + total, 1, sizeof(buffer) - total - 1, fp);
+        if (total >= sizeof(buffer) - 1) break;
+    }
+    pclose(fp);
+
+    if (total == 0) return NULL;
+
+    int count = 0;
+    for (size_t i = 0; i < total; i++) {
+        if (buffer[i] == '\n') count++;
+    }
+
+    if (count == 0) return NULL;
+
+    char** files = malloc(count * sizeof(char*));
+    if (!files) return NULL;
+
+    int idx = 0;
+    char* line_start = buffer;
+    for (size_t i = 0; i < total && idx < count; i++) {
+        if (buffer[i] == '\n') {
+            size_t line_len = i - (line_start - buffer);
+            if (line_len > 2) {
+                // Format: STATUS\tpath or STATUS path
+                // Create new string with status prefix
+                files[idx] = malloc(line_len + 1);
+                if (files[idx]) {
+                    memcpy(files[idx], line_start, line_len);
+                    files[idx][line_len] = '\0';
+                    idx++;
+                }
+            }
+            line_start = buffer + i + 1;
+        }
+    }
+
+    *n_files = idx;
+    return files;
 }
