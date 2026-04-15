@@ -1,6 +1,13 @@
 #include "lang_defs.h"
 
 #include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* Custom language registry */
+CustomLanguage g_custom_languages[MAX_CUSTOM_LANGUAGES];
+int g_custom_language_count = 0;
 
 /* Generic filter definitions */
 static const GenericFilter python_filters[] = {
@@ -312,3 +319,170 @@ const Language g_languages[NUM_LANGUAGES] = {{.name = "Python",
                                               .comment_hook = NULL,
                                               .str_delimiters = "\"",
                                               .str_escape = "\\"}};
+
+/* === Custom Language Definition Implementation === */
+
+/* Custom filter structure (stored in CustomLanguage) */
+typedef struct {
+    FilterType type;
+    char pattern_open[64];
+    char pattern_close[64];
+} CustomFilter;
+
+/* Trim whitespace from string */
+static char* trim(char* str) {
+    while (*str == ' ' || *str == '\t' || *str == '\n' || *str == '\r') str++;
+    char* end = str + strlen(str) - 1;
+    while (end > str && (*end == ' ' || *end == '\t' || *end == '\n' || *end == '\r')) {
+        *end = '\0';
+        end--;
+    }
+    return str;
+}
+
+/* Parse a single language definition block */
+static int parse_lang_block(FILE* fp, CustomLanguage* lang) {
+    char line[256];
+    int in_block = 0;
+    CustomFilter custom_filters[MAX_CUSTOM_FILTERS];
+    int custom_filter_count = 0;
+
+    memset(lang, 0, sizeof(CustomLanguage));
+
+    while (fgets(line, sizeof(line), fp)) {
+        char* trimmed = trim(line);
+
+        // Empty line or comment
+        if (*trimmed == '\0' || *trimmed == '#') continue;
+
+        // First non-empty line is the language name
+        if (!in_block) {
+            strncpy(lang->name, trimmed, sizeof(lang->name) - 1);
+            in_block = 1;
+            continue;
+        }
+
+        // Indented line = property
+        if (line[0] == ' ' || line[0] == '\t') {
+            trimmed = trim(line);
+
+            // filter remove_inline
+            if (strncmp(trimmed, "filter remove_inline ", 21) == 0) {
+                if (custom_filter_count < MAX_CUSTOM_FILTERS) {
+                    custom_filters[custom_filter_count].type = FILTER_REMOVE_INLINE;
+                    strncpy(custom_filters[custom_filter_count].pattern_open, trim(trimmed + 21),
+                            sizeof(custom_filters[custom_filter_count].pattern_open) - 1);
+                    custom_filter_count++;
+                }
+            }
+            // filter remove_between
+            else if (strncmp(trimmed, "filter remove_between ", 22) == 0) {
+                if (custom_filter_count < MAX_CUSTOM_FILTERS) {
+                    custom_filters[custom_filter_count].type = FILTER_REMOVE_BETWEEN;
+                    char* rest = trim(trimmed + 22);
+                    char* space = strchr(rest, ' ');
+                    if (space) {
+                        *space = '\0';
+                        strncpy(custom_filters[custom_filter_count].pattern_open, rest,
+                                sizeof(custom_filters[custom_filter_count].pattern_open) - 1);
+                        strncpy(custom_filters[custom_filter_count].pattern_close, trim(space + 1),
+                                sizeof(custom_filters[custom_filter_count].pattern_close) - 1);
+                        custom_filter_count++;
+                    }
+                }
+            }
+            // extension
+            else if (strncmp(trimmed, "extension ", 10) == 0) {
+                strncpy(lang->extensions, trim(trimmed + 10), sizeof(lang->extensions) - 1);
+            }
+            // filename
+            else if (strncmp(trimmed, "filename ", 9) == 0) {
+                strncpy(lang->filenames, trim(trimmed + 9), sizeof(lang->filenames) - 1);
+            }
+            // shebang
+            else if (strncmp(trimmed, "shebang ", 8) == 0) {
+                strncpy(lang->shebangs, trim(trimmed + 8), sizeof(lang->shebangs) - 1);
+            }
+            // string_delimiters
+            else if (strncmp(trimmed, "string_delimiters ", 18) == 0) {
+                strncpy(lang->str_delimiters, trim(trimmed + 18), sizeof(lang->str_delimiters) - 1);
+            }
+            // string_escape
+            else if (strncmp(trimmed, "string_escape ", 14) == 0) {
+                strncpy(lang->str_escape, trim(trimmed + 14), sizeof(lang->str_escape) - 1);
+            }
+        } else {
+            // Non-indented line after block = new language or end
+            break;
+        }
+    }
+
+    // Copy custom filters to language's GenericFilter array
+    lang->filter_count = custom_filter_count;
+    for (int i = 0; i < custom_filter_count; i++) {
+        lang->filters[i].type = custom_filters[i].type;
+        // Note: pattern_open/pattern_close are const char*, we cast from local buffer
+        lang->filters[i].pattern_open = lang->filter_patterns_open[i];
+        lang->filters[i].pattern_close = lang->filter_patterns_close[i];
+        strcpy(lang->filter_patterns_open[i], custom_filters[i].pattern_open);
+        if (custom_filters[i].type == FILTER_REMOVE_BETWEEN) {
+            strcpy(lang->filter_patterns_close[i], custom_filters[i].pattern_close);
+        }
+    }
+
+    return in_block;
+}
+
+int lang_defs_load_file(const char* filepath) {
+    FILE* fp = fopen(filepath, "r");
+    if (!fp) return -1;
+
+    int loaded = 0;
+    CustomLanguage lang;
+
+    while (!feof(fp)) {
+        if (parse_lang_block(fp, &lang)) {
+            if (strlen(lang.name) > 0 && lang_defs_register_custom(&lang) == 0) {
+                loaded++;
+            }
+        }
+    }
+
+    fclose(fp);
+    return loaded;
+}
+
+int lang_defs_register_custom(const CustomLanguage* lang) {
+    if (!lang || g_custom_language_count >= MAX_CUSTOM_LANGUAGES) return -1;
+
+    memcpy(&g_custom_languages[g_custom_language_count], lang, sizeof(CustomLanguage));
+    g_custom_language_count++;
+    return 0;
+}
+
+const Language* lang_defs_find_by_name(const char* name) {
+    if (!name) return NULL;
+
+    // Check custom languages first
+    for (int i = 0; i < g_custom_language_count; i++) {
+        if (strcmp(g_custom_languages[i].name, name) == 0) {
+            // Return pointer to custom language (cast to Language*)
+            // Note: This is safe because CustomLanguage has compatible layout
+            return (const Language*)&g_custom_languages[i];
+        }
+    }
+
+    // Check built-in languages
+    for (int i = 0; i < NUM_LANGUAGES; i++) {
+        if (strcmp(g_languages[i].name, name) == 0) {
+            return &g_languages[i];
+        }
+    }
+
+    return NULL;
+}
+
+void lang_defs_clear_custom(void) {
+    g_custom_language_count = 0;
+    memset(g_custom_languages, 0, sizeof(g_custom_languages));
+}
