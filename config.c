@@ -134,8 +134,13 @@ int config_load(const char* filepath, CliArgs* args) {
                 if (args->progress_rate < 1) args->progress_rate = 1;
             } else if (strcmp(key, "--skip-leading") == 0) {
                 char* comma = strchr(value, ',');
-                if (comma) *comma = '\0';
-                args->skip_leading = (int)strtol(value, NULL, 10);
+                if (comma) {
+                    *comma = '\0';
+                    args->skip_leading = (int)strtol(value, NULL, 10);
+                    append_csv_to_array(comma + 1, &args->skip_leading_exts, &args->n_skip_leading_exts);
+                } else {
+                    args->skip_leading = (int)strtol(value, NULL, 10);
+                }
             } else if (strcmp(key, "--sdir") == 0) {
                 if (args->staging_dir) free(args->staging_dir);
                 args->staging_dir = strdup(value);
@@ -199,12 +204,6 @@ int config_load(const char* filepath, CliArgs* args) {
                 append_csv_to_array(value, &args->include_exts, &args->n_include_exts);
             } else if (strcmp(key, "--exclude-ext") == 0) {
                 append_csv_to_array(value, &args->exclude_exts, &args->n_exclude_exts);
-            } else if (strcmp(key, "--skip-leading") == 0 && value && strchr(value, ',')) {
-                /* Re-parse extensions part */
-                char* comma = strchr(value, ',');
-                if (comma) {
-                    append_csv_to_array(comma + 1, &args->skip_leading_exts, &args->n_skip_leading_exts);
-                }
             }
         }
     }
