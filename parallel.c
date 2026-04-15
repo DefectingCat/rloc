@@ -1,10 +1,16 @@
 #include "parallel.h"
 #include "language.h"
+#include "counter.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <ctype.h>
 
 // Get default parallel configuration
 void parallel_default_config(ParallelConfig* config) {
@@ -22,69 +28,62 @@ void parallel_default_config(ParallelConfig* config) {
 
     config->chunk_size = 100;
     config->timeout_sec = 300;  // 5 minutes per chunk
-    config->temp_mgr = NULL;
 }
 
-// Parse TSV output from worker
-int parse_worker_tsv(const char* tsv_path, WorkerResult* results, int max_results) {
-    FILE* fp = fopen(tsv_path, "r");
-    if (!fp) return -1;
-
-    char line[2048];
-    int count = 0;
-
-    while (fgets(line, sizeof(line), fp) && count < max_results) {
-        // Format: filepath\tlanguage\tblank\tcomment\tcode
-        char* saveptr;
-        char* filepath = strtok_r(line, "\t", &saveptr);
-        if (!filepath) continue;
-
-        char* lang = strtok_r(NULL, "\t", &saveptr);
-        char* blank_str = strtok_r(NULL, "\t", &saveptr);
-        char* comment_str = strtok_r(NULL, "\t", &saveptr);
-        char* code_str = strtok_r(NULL, "\t\n", &saveptr);
-
-        if (!filepath || !lang || !blank_str || !comment_str || !code_str) continue;
-
-        strncpy(results[count].filepath, filepath, sizeof(results[count].filepath) - 1);
-        results[count].language = lang;  // Note: points to line buffer
-        results[count].blank = atoi(blank_str);
-        results[count].comment = atoi(comment_str);
-        results[count].code = atoi(code_str);
-
-        count++;
+// Worker process function - counts files and writes results to pipe
+static void worker_process(const char** files, int start, int end, int write_fd,
+                           char** skip_leading_exts, int n_skip_leading_exts, int skip_leading) {
+    FILE* out = fdopen(write_fd, "w");
+    if (!out) {
+        close(write_fd);
+        return;
     }
 
-    fclose(fp);
-    return count;
-}
-
-// Worker process entry point (called via popen)
-// Outputs TSV format to stdout
-static void worker_process_files(char** files, int start, int end) {
     for (int i = start; i < end; i++) {
         const char* filepath = files[i];
         const Language* lang = detect_language(filepath);
         if (!lang) continue;
 
-        CountResult result;
-        if (count_file_with_lang(filepath, lang, 0, &result) != 0) continue;
+        // Determine skip_lines
+        int skip_lines = 0;
+        if (skip_leading > 0) {
+            if (n_skip_leading_exts > 0) {
+                const char* ext = strrchr(filepath, '.');
+                if (ext) ext++;
+                for (int j = 0; j < n_skip_leading_exts; j++) {
+                    const char* p = skip_leading_exts[j];
+                    if (p[0] == '.') p++;
+                    if (strcasecmp(ext ? ext : "", p) == 0) {
+                        skip_lines = skip_leading;
+                        break;
+                    }
+                }
+            } else {
+                skip_lines = skip_leading;
+            }
+        }
 
-        // Output TSV: filepath\tlanguage\tblank\tcomment\tcode
-        printf("%s\t%s\t%d\t%d\t%d\n", filepath, lang->name,
-               result.blank, result.comment, result.code);
+        CountResult result;
+        if (count_file_with_lang(filepath, lang, skip_lines, &result) == 0) {
+            // Output TSV: filepath\tlanguage\tblank\tcomment\tcode
+            fprintf(out, "%s\t%s\t%d\t%d\t%d\n", filepath, lang->name,
+                   result.blank, result.comment, result.code);
+        }
     }
+
+    fclose(out);
 }
 
-// Count files in parallel
-int parallel_count_files(char** files, int n_files, ParallelConfig* config,
-                         CountResult* results, int* n_results) {
-    if (!files || n_files <= 0 || !config) {
+// Count files in parallel using fork
+int parallel_count_files(const char** files, int n_files, ParallelConfig* config,
+                         char** skip_leading_exts, int n_skip_leading_exts, int skip_leading,
+                         ParallelResult* results, int* n_results) {
+    if (!files || n_files <= 0 || !config || !results) {
         *n_results = 0;
         return -1;
     }
 
-    // For small file counts, don't parallelize
+    // For small file counts or single worker, don't parallelize
     if (n_files < 50 || config->n_workers <= 1) {
         // Single-threaded fallback
         int count = 0;
@@ -92,7 +91,27 @@ int parallel_count_files(char** files, int n_files, ParallelConfig* config,
             const Language* lang = detect_language(files[i]);
             if (!lang) continue;
 
-            if (count_file_with_lang(files[i], lang, 0, &results[count]) == 0) {
+            int skip_lines_worker = 0;
+            if (skip_leading > 0) {
+                if (n_skip_leading_exts > 0) {
+                    const char* ext = strrchr(files[i], '.');
+                    if (ext) ext++;
+                    for (int j = 0; j < n_skip_leading_exts; j++) {
+                        const char* p = skip_leading_exts[j];
+                        if (p[0] == '.') p++;
+                        if (strcasecmp(ext ? ext : "", p) == 0) {
+                            skip_lines_worker = skip_leading;
+                            break;
+                        }
+                    }
+                } else {
+                    skip_lines_worker = skip_leading;
+                }
+            }
+
+            if (count_file_with_lang(files[i], lang, skip_lines_worker, &results[count].counts) == 0) {
+                strncpy(results[count].filepath, files[i], sizeof(results[count].filepath) - 1);
+                results[count].language = lang;
                 count++;
             }
         }
@@ -100,64 +119,101 @@ int parallel_count_files(char** files, int n_files, ParallelConfig* config,
         return count;
     }
 
-    // Create temporary files for worker output
-    if (!config->temp_mgr) {
-        *n_results = 0;
-        return -1;
-    }
-
     // Calculate chunk sizes
     int chunk_size = (n_files + config->n_workers - 1) / config->n_workers;
     if (chunk_size < 10) chunk_size = 10;
 
-    // Create output temp files for each worker
-    char* output_files[config->n_workers];
-    for (int w = 0; w < config->n_workers; w++) {
-        output_files[w] = temp_manager_create_file(config->temp_mgr, "rloc_worker");
-        if (!output_files[w]) {
-            // Fallback to single-threaded
-            int count = 0;
-            for (int i = 0; i < n_files; i++) {
-                const Language* lang = detect_language(files[i]);
-                if (!lang) continue;
-                if (count_file_with_lang(files[i], lang, 0, &results[count]) == 0) {
-                    count++;
-                }
-            }
-            *n_results = count;
-            return count;
-        }
-    }
+    // Create pipes for each worker
+    int pipes[config->n_workers][2];
+    pid_t pids[config->n_workers];
 
-    // Launch worker processes via popen
-    FILE* worker_streams[config->n_workers];
+    // Block SIGCHLD temporarily
+    sigset_t mask, oldmask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+    sigprocmask(SIG_BLOCK, &mask, &oldmask);
+
+    // Fork workers
+    int active_workers = 0;
     for (int w = 0; w < config->n_workers; w++) {
         int start = w * chunk_size;
         int end = start + chunk_size;
         if (end > n_files) end = n_files;
+        if (start >= end) break;
 
-        // Build command: run rloc as worker
-        // For simplicity, we'll use a shell script approach
-        char cmd[2048];
-        snprintf(cmd, sizeof(cmd),
-                 "cd '%s' && for f in %s..%d; do echo \"$f\"; done | xargs -I{} ./rloc --by-file '{}' 2>/dev/null",
-                 ".", files[start], end - 1);
+        if (pipe(pipes[w]) < 0) {
+            // Pipe creation failed, skip this worker
+            continue;
+        }
 
-        worker_streams[w] = popen(cmd, "r");
-    }
-
-    // Collect results
-    int total_count = 0;
-    for (int w = 0; w < config->n_workers; w++) {
-        if (worker_streams[w]) {
-            char line[2048];
-            while (fgets(line, sizeof(line), worker_streams[w]) && total_count < *n_results) {
-                // Parse output and add to results
-                // Simplified: direct single-thread fallback
-            }
-            pclose(worker_streams[w]);
+        pid_t pid = fork();
+        if (pid < 0) {
+            // Fork failed, close pipes
+            close(pipes[w][0]);
+            close(pipes[w][1]);
+            continue;
+        } else if (pid == 0) {
+            // Child process
+            close(pipes[w][0]);  // Close read end
+            worker_process(files, start, end, pipes[w][1],
+                           skip_leading_exts, n_skip_leading_exts, skip_leading);
+            exit(0);
+        } else {
+            // Parent process
+            close(pipes[w][1]);  // Close write end
+            pids[w] = pid;
+            active_workers++;
         }
     }
+
+    // Read results from all workers
+    int total_count = 0;
+    char line[2048];
+
+    for (int w = 0; w < active_workers; w++) {
+        FILE* in = fdopen(pipes[w][0], "r");
+        if (!in) {
+            close(pipes[w][0]);
+            continue;
+        }
+
+        while (fgets(line, sizeof(line), in) && total_count < *n_results) {
+            // Parse TSV: filepath\tlanguage\tblank\tcomment\tcode
+            char* saveptr;
+            char* filepath = strtok_r(line, "\t", &saveptr);
+            if (!filepath) continue;
+
+            char* lang_name = strtok_r(NULL, "\t", &saveptr);
+            char* blank_str = strtok_r(NULL, "\t", &saveptr);
+            char* comment_str = strtok_r(NULL, "\t", &saveptr);
+            char* code_str = strtok_r(NULL, "\t\n", &saveptr);
+
+            if (!filepath || !lang_name || !blank_str || !comment_str || !code_str) continue;
+
+            strncpy(results[total_count].filepath, filepath, sizeof(results[total_count].filepath) - 1);
+            results[total_count].filepath[sizeof(results[total_count].filepath) - 1] = '\0';
+            results[total_count].counts.blank = atoi(blank_str);
+            results[total_count].counts.comment = atoi(comment_str);
+            results[total_count].counts.code = atoi(code_str);
+            results[total_count].counts.total = results[total_count].counts.blank +
+                                                results[total_count].counts.comment +
+                                                results[total_count].counts.code;
+
+            // Find language by name
+            results[total_count].language = get_language_by_name(lang_name);
+            total_count++;
+        }
+
+        fclose(in);
+    }
+
+    // Wait for all workers to complete
+    for (int w = 0; w < active_workers; w++) {
+        waitpid(pids[w], NULL, 0);
+    }
+
+    // Restore signal mask
+    sigprocmask(SIG_SETMASK, &oldmask, NULL);
 
     *n_results = total_count;
     return total_count;
