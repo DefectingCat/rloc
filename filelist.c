@@ -2,6 +2,7 @@
 
 #include <dirent.h>
 #include <fnmatch.h>
+#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -71,6 +72,21 @@ static int matches_exclude_pattern(const char* filepath, const FilelistConfig* c
     return 0;
 }
 
+// Check if filepath matches regex pattern (--match-f)
+static int matches_regex(const char* filepath, const char* pattern) {
+    if (!pattern) return 0;
+
+    regex_t regex;
+    int ret = regcomp(&regex, pattern, REG_EXTENDED | REG_NOSUB);
+    if (ret != 0) {
+        return 0;  // Invalid regex, treat as no match
+    }
+
+    ret = regexec(&regex, filepath, 0, NULL, 0);
+    regfree(&regex);
+    return (ret == 0) ? 1 : 0;
+}
+
 void filelist_init(FileList* list) {
     if (!list) return;
     list->paths = NULL;
@@ -131,6 +147,21 @@ int filelist_scan(const char* path, const FilelistConfig* config, FileList* list
                 continue;
             }
 
+            // Check against directory regex patterns
+            if (config && config->match_d_pattern) {
+                if (!matches_regex(entry->d_name, config->match_d_pattern)) {
+                    free(full_path);
+                    continue;
+                }
+            }
+
+            if (config && config->not_match_d_pattern) {
+                if (matches_regex(entry->d_name, config->not_match_d_pattern)) {
+                    free(full_path);
+                    continue;
+                }
+            }
+
             if (config && config->no_recurse) {
                 free(full_path);
                 continue;
@@ -156,6 +187,22 @@ int filelist_scan(const char* path, const FilelistConfig* config, FileList* list
             if (matches_exclude_pattern(full_path, config)) {
                 free(full_path);
                 continue;
+            }
+
+            // Check against regex match pattern (--match-f)
+            if (config && config->match_pattern) {
+                if (!matches_regex(full_path, config->match_pattern)) {
+                    free(full_path);
+                    continue;
+                }
+            }
+
+            // Check against regex not-match pattern (--not-match-f)
+            if (config && config->not_match_pattern) {
+                if (matches_regex(full_path, config->not_match_pattern)) {
+                    free(full_path);
+                    continue;
+                }
             }
 
             filelist_add(list, full_path);

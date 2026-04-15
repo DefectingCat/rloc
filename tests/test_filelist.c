@@ -24,6 +24,12 @@ TEST(test_scan_single_file) {
     config.max_file_size = 1024 * 1024;
     config.exclude_dirs = NULL;
     config.n_exclude_dirs = 0;
+    config.exclude_patterns = NULL;
+    config.n_exclude_patterns = 0;
+    config.match_pattern = NULL;
+    config.not_match_pattern = NULL;
+    config.match_d_pattern = NULL;
+    config.not_match_d_pattern = NULL;
 
     int result = filelist_scan(test_file, &config, &list);
     ASSERT_EQ(result, 0);
@@ -53,6 +59,12 @@ TEST(test_scan_directory_recursive) {
     config.max_file_size = 1024 * 1024;
     config.exclude_dirs = NULL;
     config.n_exclude_dirs = 0;
+    config.exclude_patterns = NULL;
+    config.n_exclude_patterns = 0;
+    config.match_pattern = NULL;
+    config.not_match_pattern = NULL;
+    config.match_d_pattern = NULL;
+    config.not_match_d_pattern = NULL;
 
     int result = filelist_scan("/tmp/rloc_test_dir", &config, &list);
     ASSERT_EQ(result, 0);
@@ -84,6 +96,12 @@ TEST(test_no_recurse_option) {
     config.max_file_size = 1024 * 1024;
     config.exclude_dirs = NULL;
     config.n_exclude_dirs = 0;
+    config.exclude_patterns = NULL;
+    config.n_exclude_patterns = 0;
+    config.match_pattern = NULL;
+    config.not_match_pattern = NULL;
+    config.match_d_pattern = NULL;
+    config.not_match_d_pattern = NULL;
 
     int result = filelist_scan("/tmp/rloc_test_norecurse", &config, &list);
     ASSERT_EQ(result, 0);
@@ -129,6 +147,12 @@ TEST(test_exclude_dir_option) {
     const char* excludes[] = {"excluded_dir"};
     config.exclude_dirs = (char**)excludes;
     config.n_exclude_dirs = 1;
+    config.exclude_patterns = NULL;
+    config.n_exclude_patterns = 0;
+    config.match_pattern = NULL;
+    config.not_match_pattern = NULL;
+    config.match_d_pattern = NULL;
+    config.not_match_d_pattern = NULL;
 
     int result = filelist_scan("/tmp/rloc_test_exclude", &config, &list);
     ASSERT_EQ(result, 0);
