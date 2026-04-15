@@ -12,7 +12,7 @@ TEST(test_c_single_line_block) {
     const char* src = "/* comment */\nint x = 5;\n";
     const Language* c_lang = get_language_by_name("C");
     CountResult result;
-    count_lines_with_lang(src, strlen(src), c_lang, &result);
+    count_lines_with_lang(src, strlen(src), c_lang, 0, &result);
     ASSERT_EQ(result.comment, 1);
     ASSERT_EQ(result.code, 1);
 }
@@ -21,7 +21,7 @@ TEST(test_c_multi_line_block) {
     const char* src = "/* line1\nline2\nline3 */\nint x;\n";
     const Language* c_lang = get_language_by_name("C");
     CountResult result;
-    count_lines_with_lang(src, strlen(src), c_lang, &result);
+    count_lines_with_lang(src, strlen(src), c_lang, 0, &result);
     ASSERT_EQ(result.comment, 3);
     ASSERT_EQ(result.code, 1);
 }
@@ -30,7 +30,7 @@ TEST(test_c_inline_block_with_code) {
     const char* src = "int x = 5; /* comment */ y = 10;\n";
     const Language* c_lang = get_language_by_name("C");
     CountResult result;
-    count_lines_with_lang(src, strlen(src), c_lang, &result);
+    count_lines_with_lang(src, strlen(src), c_lang, 0, &result);
     ASSERT_EQ(result.code, 1);
     ASSERT_EQ(result.comment, 0);
 }
@@ -39,7 +39,7 @@ TEST(test_html_block_comment) {
     const char* src = "<!-- comment -->\n<p>text</p>\n";
     const Language* html_lang = get_language_by_name("HTML");
     CountResult result;
-    count_lines_with_lang(src, strlen(src), html_lang, &result);
+    count_lines_with_lang(src, strlen(src), html_lang, 0, &result);
     ASSERT_EQ(result.comment, 1);
     ASSERT_EQ(result.code, 1);
 }
@@ -48,7 +48,7 @@ TEST(test_block_in_string) {
     const char* src = "char *s = \"/* not comment */\";\nint x;\n";
     const Language* c_lang = get_language_by_name("C");
     CountResult result;
-    count_lines_with_lang(src, strlen(src), c_lang, &result);
+    count_lines_with_lang(src, strlen(src), c_lang, 0, &result);
     ASSERT_EQ(result.code, 2);
     ASSERT_EQ(result.comment, 0);
 }
@@ -57,7 +57,7 @@ TEST(test_css_block_comment) {
     const char* src = "/* CSS comment */\nbody { color: red; }\n";
     const Language* css_lang = get_language_by_name("CSS");
     CountResult result;
-    count_lines_with_lang(src, strlen(src), css_lang, &result);
+    count_lines_with_lang(src, strlen(src), css_lang, 0, &result);
     ASSERT_EQ(result.comment, 1);
 }
 

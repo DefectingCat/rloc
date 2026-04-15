@@ -46,4 +46,10 @@ const Language* lang_defs_find_by_name(const char* name);
 /* Clear all custom language definitions */
 void lang_defs_clear_custom(void);
 
+/* Show language information */
+int lang_show(const char* name);
+
+/* Show extension to language mapping */
+int ext_show(const char* ext);
+
 #endif /* LANG_DEFS_H */

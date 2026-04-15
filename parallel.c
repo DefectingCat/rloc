@@ -68,7 +68,7 @@ static void worker_process_files(char** files, int start, int end) {
         if (!lang) continue;
 
         CountResult result;
-        if (count_file_with_lang(filepath, lang, &result) != 0) continue;
+        if (count_file_with_lang(filepath, lang, 0, &result) != 0) continue;
 
         // Output TSV: filepath\tlanguage\tblank\tcomment\tcode
         printf("%s\t%s\t%d\t%d\t%d\n", filepath, lang->name,
@@ -92,7 +92,7 @@ int parallel_count_files(char** files, int n_files, ParallelConfig* config,
             const Language* lang = detect_language(files[i]);
             if (!lang) continue;
 
-            if (count_file_with_lang(files[i], lang, &results[count]) == 0) {
+            if (count_file_with_lang(files[i], lang, 0, &results[count]) == 0) {
                 count++;
             }
         }
@@ -120,7 +120,7 @@ int parallel_count_files(char** files, int n_files, ParallelConfig* config,
             for (int i = 0; i < n_files; i++) {
                 const Language* lang = detect_language(files[i]);
                 if (!lang) continue;
-                if (count_file_with_lang(files[i], lang, &results[count]) == 0) {
+                if (count_file_with_lang(files[i], lang, 0, &results[count]) == 0) {
                     count++;
                 }
             }

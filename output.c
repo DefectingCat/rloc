@@ -91,6 +91,15 @@ static int count_valid_files(const FileStats* files, int n_files) {
     return count;
 }
 
+/* Helper: Count duplicate files (ignore_reason == "duplicate") */
+static int count_duplicates(const FileStats* files, int n_files) {
+    int count = 0;
+    for (int i = 0; i < n_files; i++) {
+        if (files[i].ignore_reason && strcmp(files[i].ignore_reason, "duplicate") == 0) count++;
+    }
+    return count;
+}
+
 void output_text(const FileStats* files, int n_files, double elapsed_sec) {
     LanguageStats lang_stats[MAX_LANGUAGES];
     int n_languages = 0;
@@ -100,9 +109,9 @@ void output_text(const FileStats* files, int n_files, double elapsed_sec) {
     calculate_totals(lang_stats, n_languages, &total_files, &total_blank, &total_comment,
                      &total_code);
 
-    // Count files including unknown
     int n_total = n_files;
     int n_valid = count_valid_files(files, n_files);
+    int n_duplicates = count_duplicates(files, n_files);
 
     // Calculate files/s and lines/s
     double files_per_sec = (elapsed_sec > 0) ? (n_valid / elapsed_sec) : 0.0;
@@ -113,6 +122,9 @@ void output_text(const FileStats* files, int n_files, double elapsed_sec) {
     printf("%5d text file%s.\n", n_total, (n_total != 1) ? "s" : "");
     printf("%5d unique file%s.\n", n_valid, (n_valid != 1) ? "s" : "");
     printf("%5d files ignored.\n", n_total - n_valid);
+    if (n_duplicates > 0) {
+        printf("%5d duplicate file%s.\n", n_duplicates, (n_duplicates != 1) ? "s" : "");
+    }
     printf("\n");
 
     // Print URL line
@@ -162,10 +174,13 @@ void output_text(const FileStats* files, int n_files, double elapsed_sec) {
 /* Output per-file text format */
 void output_text_by_file(const FileStats* files, int n_files, double elapsed_sec) {
     int n_valid = count_valid_files(files, n_files);
+    int n_duplicates = count_duplicates(files, n_files);
 
     printf("%5d text file%s.\n", n_files, (n_files != 1) ? "s" : "");
     printf("%5d unique file%s.\n", n_valid, (n_valid != 1) ? "s" : "");
-    printf("\n");
+    if (n_duplicates > 0) {
+        printf("%5d duplicate file%s.\n", n_duplicates, (n_duplicates != 1) ? "s" : "");
+    }
 
     double files_per_sec = (elapsed_sec > 0) ? (n_valid / elapsed_sec) : 0.0;
     printf("https://github.com/rloc/rloc v 0.1.0  T=%.2f s (%.1f files/s)\n", elapsed_sec,

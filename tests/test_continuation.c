@@ -11,7 +11,7 @@ TEST(test_shell_continuation) {
     const char* src = "echo hello \\n    world\\n";
     const Language* shell_lang = get_language_by_name("Shell");
     CountResult result;
-    count_lines_with_lang(src, strlen(src), shell_lang, &result);
+    count_lines_with_lang(src, strlen(src), shell_lang, 0, &result);
     // Both lines should count as code (continuation inherits parent type)
     ASSERT_EQ(result.code, 2);
 }
@@ -21,7 +21,7 @@ TEST(test_c_preprocessor_continuation) {
     const char* src = "#define X \\n    100\\nint y;\\n";
     const Language* c_lang = get_language_by_name("C");
     CountResult result;
-    count_lines_with_lang(src, strlen(src), c_lang, &result);
+    count_lines_with_lang(src, strlen(src), c_lang, 0, &result);
     // #define line + continuation + int y line = 3 code lines
     ASSERT_EQ(result.code, 3);
 }
@@ -31,7 +31,7 @@ TEST(test_comment_continuation) {
     const char* src = "# comment \\n    continued\\necho done\\n";
     const Language* shell_lang = get_language_by_name("Shell");
     CountResult result;
-    count_lines_with_lang(src, strlen(src), shell_lang, &result);
+    count_lines_with_lang(src, strlen(src), shell_lang, 0, &result);
     // Comment continuation inherits comment type
     ASSERT_EQ(result.comment, 2);
     ASSERT_EQ(result.code, 1);

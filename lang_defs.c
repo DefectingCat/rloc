@@ -486,3 +486,114 @@ void lang_defs_clear_custom(void) {
     g_custom_language_count = 0;
     memset(g_custom_languages, 0, sizeof(g_custom_languages));
 }
+
+/* Print language info: name, extensions, filters */
+int lang_show(const char* name) {
+    if (name) {
+        const Language* lang = lang_defs_find_by_name(name);
+        if (!lang) {
+            fprintf(stderr, "Error: Unknown language '%s'\n", name);
+            return -1;
+        }
+        printf("%s\n", lang->name);
+        printf("  extensions: %s\n", lang->extensions ? lang->extensions : "(none)");
+        if (lang->filenames) printf("  filenames:  %s\n", lang->filenames);
+        if (lang->shebangs)  printf("  shebangs:   %s\n", lang->shebangs);
+        printf("  filters:    %zu\n", lang->generic_filter_count);
+        for (size_t i = 0; i < lang->generic_filter_count; i++) {
+            if (lang->generic_filters[i].type == FILTER_REMOVE_INLINE) {
+                printf("    inline: %s\n", lang->generic_filters[i].pattern_open);
+            } else if (lang->generic_filters[i].type == FILTER_REMOVE_BETWEEN) {
+                printf("    between: %s ... %s\n", lang->generic_filters[i].pattern_open,
+                       lang->generic_filters[i].pattern_close);
+            } else {
+                printf("    remove: %s\n", lang->generic_filters[i].pattern_open);
+            }
+        }
+        return 0;
+    }
+    printf("Supported languages:\n");
+    for (int i = 0; i < NUM_LANGUAGES; i++) {
+        printf("  %-12s  %s\n", g_languages[i].name, g_languages[i].extensions);
+    }
+    if (g_custom_language_count > 0) {
+        printf("Custom languages:\n");
+        for (int i = 0; i < g_custom_language_count; i++) {
+            printf("  %-12s  %s\n", g_custom_languages[i].name,
+                   g_custom_languages[i].extensions);
+        }
+    }
+    return 0;
+}
+
+/* Print extension to language mapping */
+int ext_show(const char* ext) {
+    if (ext) {
+        if (ext[0] == '.') ext++;
+        int found = 0;
+        for (int i = 0; i < NUM_LANGUAGES; i++) {
+            if (!g_languages[i].extensions) continue;
+            char buf[256];
+            strncpy(buf, g_languages[i].extensions, sizeof(buf) - 1);
+            buf[sizeof(buf) - 1] = '\0';
+            char* token = strtok(buf, ",");
+            while (token) {
+                if (strcasecmp(token, ext) == 0) {
+                    printf("%s -> %s\n", ext, g_languages[i].name);
+                    found = 1;
+                    break;
+                }
+                token = strtok(NULL, ",");
+            }
+            if (found) break;
+        }
+        if (!found) {
+            for (int i = 0; i < g_custom_language_count; i++) {
+                if (g_custom_languages[i].extensions[0] == '\0') continue;
+                char buf[256];
+                strncpy(buf, g_custom_languages[i].extensions, sizeof(buf) - 1);
+                buf[sizeof(buf) - 1] = '\0';
+                char* token = strtok(buf, ",");
+                while (token) {
+                    if (strcasecmp(token, ext) == 0) {
+                        printf("%s -> %s (custom)\n", ext, g_custom_languages[i].name);
+                        found = 1;
+                        break;
+                    }
+                    token = strtok(NULL, ",");
+                }
+                if (found) break;
+            }
+        }
+        if (!found) {
+            fprintf(stderr, "Error: Unknown extension '%s'\n", ext);
+            return -1;
+        }
+        return 0;
+    }
+    for (int i = 0; i < NUM_LANGUAGES; i++) {
+        if (!g_languages[i].extensions) continue;
+        char buf[256];
+        strncpy(buf, g_languages[i].extensions, sizeof(buf) - 1);
+        buf[sizeof(buf) - 1] = '\0';
+        char* token = strtok(buf, ",");
+        while (token) {
+            printf("  %-8s -> %s\n", token, g_languages[i].name);
+            token = strtok(NULL, ",");
+        }
+    }
+    if (g_custom_language_count > 0) {
+        for (int i = 0; i < g_custom_language_count; i++) {
+            if (g_custom_languages[i].extensions[0] == '\0') continue;
+            char buf[256];
+            strncpy(buf, g_custom_languages[i].extensions, sizeof(buf) - 1);
+            buf[sizeof(buf) - 1] = '\0';
+            char* token = strtok(buf, ",");
+            while (token) {
+                printf("  %-8s -> %s (custom)\n", token, g_custom_languages[i].name);
+                token = strtok(NULL, ",");
+            }
+        }
+    }
+    return 0;
+}

@@ -3,7 +3,7 @@ CFLAGS = -Wall -Wextra -std=c11
 INCLUDES = -I. -Itests
 
 # Source files
-SOURCES = main.c cli.c counter.c output.c util.c filelist.c language.c lang_defs.c strlit.c vcs.c diff.c temp_manager.c exec_helper.c archive.c parallel.c
+SOURCES = main.c cli.c counter.c output.c util.c filelist.c language.c lang_defs.c strlit.c vcs.c diff.c temp_manager.c exec_helper.c archive.c parallel.c unique.c config.c
 OBJECTS = $(SOURCES:.c=.o)
 
 # Main target

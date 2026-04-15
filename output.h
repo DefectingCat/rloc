@@ -8,6 +8,7 @@ typedef struct {
     const char* filepath;
     const Language* lang;  // Language pointer (was: const char *language)
     CountResult counts;
+    const char* ignore_reason;  // NULL if counted, otherwise reason
 } FileStats;
 
 // Output results as text table (default cloc-like format)

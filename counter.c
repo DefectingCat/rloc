@@ -161,7 +161,7 @@ void count_lines(const char* src, size_t len, CountResult* result) {
     }
 }
 
-void count_lines_with_lang(const char* src, size_t len, const Language* lang, CountResult* result) {
+void count_lines_with_lang(const char* src, size_t len, const Language* lang, int skip_lines, CountResult* result) {
     result->blank = 0;
     result->comment = 0;
     result->code = 0;
@@ -193,6 +193,24 @@ void count_lines_with_lang(const char* src, size_t len, const Language* lang, Co
     size_t work_len = len;
     char* stripped_buffer = NULL;
 
+    // Skip leading lines if requested
+    if (skip_lines > 0) {
+        const char* p = work_src;
+        const char* end_skip = work_src + work_len;
+        int lines_to_skip = skip_lines;
+        while (p < end_skip && lines_to_skip > 0) {
+            if (*p == '\n') {
+                lines_to_skip--;
+                work_src = p + 1;
+            }
+            p++;
+        }
+        if (lines_to_skip > 0 && work_src < end_skip) {
+            work_src = end_skip;
+        }
+        work_len = end_skip - work_src;
+    }
+
     // If language has filters that need string literal stripping, do it first
     if ((has_remove_inline || has_remove_between) && lang->str_delimiters) {
         stripped_buffer = (char*)malloc(len);
@@ -203,6 +221,24 @@ void count_lines_with_lang(const char* src, size_t len, const Language* lang, Co
             // Note: strip_string_literals returns original length, but we work with
             // actual content
         }
+    }
+
+    // Skip leading lines after stripping is done
+    if (skip_lines > 0) {
+        const char* p2 = work_src;
+        const char* end_skip = work_src + work_len;
+        int lines_to_skip = skip_lines;
+        while (p2 < end_skip && lines_to_skip > 0) {
+            if (*p2 == '\n') {
+                lines_to_skip--;
+                work_src = p2 + 1;
+            }
+            p2++;
+        }
+        if (lines_to_skip > 0 && work_src < end_skip) {
+            work_src = end_skip;
+        }
+        work_len = end_skip - work_src;
     }
 
     const char* line_start = work_src;
@@ -400,7 +436,7 @@ int count_file(const char* filepath, CountResult* result) {
     return 0;
 }
 
-int count_file_with_lang(const char* filepath, const Language* lang, CountResult* result) {
+int count_file_with_lang(const char* filepath, const Language* lang, int skip_lines, CountResult* result) {
     FILE* file = fopen(filepath, "rb");
     if (file == NULL) {
         return -1;
@@ -430,7 +466,7 @@ int count_file_with_lang(const char* filepath, const Language* lang, CountResult
     size_t bytes_read = fread(buffer, 1, file_size, file);
     fclose(file);
 
-    count_lines_with_lang(buffer, bytes_read, lang, result);
+    count_lines_with_lang(buffer, bytes_read, lang, skip_lines, result);
 
     free(buffer);
     return 0;

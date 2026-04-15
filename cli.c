@@ -5,39 +5,84 @@
 #include <string.h>
 
 int cli_parse(int argc, char** argv, CliArgs* args) {
-    // Initialize structure
-    args->input_files = NULL;
-    args->n_input_files = 0;
-    args->show_help = 0;
-    args->show_version = 0;
-    args->no_recurse = 0;
-    args->max_file_size_mb = 0;
-    args->exclude_dirs = NULL;
-    args->n_exclude_dirs = 0;
-    args->include_langs = NULL;
-    args->n_include_langs = 0;
-    args->exclude_langs = NULL;
-    args->n_exclude_langs = 0;
-    args->include_exts = NULL;
-    args->n_include_exts = 0;
-    args->exclude_exts = NULL;
-    args->n_exclude_exts = 0;
-    args->output_format = FORMAT_TEXT;  // Default text format
-    args->by_file = 0;                  // Default off
-    args->by_file_by_lang = 0;          // Default off
-    args->vcs = VCS_NONE;               // Default no VCS
-    args->diff_commit1 = NULL;          // Default no diff
-    args->diff_commit2 = NULL;          // Default no diff
-    args->exclude_list_file = NULL;     // Default no exclude list file
-    args->match_pattern = NULL;         // Default no match pattern
-    args->not_match_pattern = NULL;     // Default no not-match pattern
-    args->match_d_pattern = NULL;       // Default no match-d pattern
-    args->not_match_d_pattern = NULL;   // Default no not-match-d pattern
-    args->sql_file = NULL;              // Default no SQL output
-    args->report_file = NULL;           // Default stdout output
-    args->quiet = 0;                    // Default not quiet
-    args->max_temp_size = 0;            // Default 0 (use 1GB default)
-    args->staging_dir = NULL;           // Default no staging dir
+    /* Save config-set list arrays before resetting */
+    int saved_n_exclude_dirs = args->n_exclude_dirs;
+    char** saved_exclude_dirs = args->exclude_dirs;
+    int saved_n_include_langs = args->n_include_langs;
+    char** saved_include_langs = args->include_langs;
+    int saved_n_exclude_langs = args->n_exclude_langs;
+    char** saved_exclude_langs = args->exclude_langs;
+    int saved_n_include_exts = args->n_include_exts;
+    char** saved_include_exts = args->include_exts;
+    int saved_n_exclude_exts = args->n_exclude_exts;
+    char** saved_exclude_exts = args->exclude_exts;
+
+    /* Save config-set scalar values */
+    int saved_no_config = args->no_config;
+    char* saved_config_file = args->config_file;
+    int saved_quiet = args->quiet;
+    int saved_output_format = args->output_format;
+    int saved_no_recurse = args->no_recurse;
+    int saved_max_file_size_mb = args->max_file_size_mb;
+    int saved_by_file = args->by_file;
+    int saved_by_file_by_lang = args->by_file_by_lang;
+    int saved_vcs = args->vcs;
+    int saved_skip_leading = args->skip_leading;
+    char** saved_skip_leading_exts = args->skip_leading_exts;
+    int saved_n_skip_leading_exts = args->n_skip_leading_exts;
+    int saved_progress_rate = args->progress_rate;
+    int saved_skip_uniqueness = args->skip_uniqueness;
+    char* saved_unique_file = args->unique_file;
+    char* saved_ignored_file = args->ignored_file;
+    int saved_max_temp_size = args->max_temp_size;
+    char* saved_staging_dir = args->staging_dir;
+    char* saved_exclude_list_file = args->exclude_list_file;
+    char* saved_match_pattern = args->match_pattern;
+    char* saved_not_match_pattern = args->not_match_pattern;
+    char* saved_match_d_pattern = args->match_d_pattern;
+    char* saved_not_match_d_pattern = args->not_match_d_pattern;
+    char* saved_sql_file = args->sql_file;
+    char* saved_report_file = args->report_file;
+
+    // Initialize structure - reset everything
+    memset(args, 0, sizeof(CliArgs));
+
+    /* Restore config-set values */
+    args->n_exclude_dirs = saved_n_exclude_dirs;
+    args->exclude_dirs = saved_exclude_dirs;
+    args->n_include_langs = saved_n_include_langs;
+    args->include_langs = saved_include_langs;
+    args->n_exclude_langs = saved_n_exclude_langs;
+    args->exclude_langs = saved_exclude_langs;
+    args->n_include_exts = saved_n_include_exts;
+    args->include_exts = saved_include_exts;
+    args->n_exclude_exts = saved_n_exclude_exts;
+    args->exclude_exts = saved_exclude_exts;
+    args->no_config = saved_no_config;
+    args->config_file = saved_config_file;
+    args->quiet = saved_quiet;
+    args->output_format = saved_output_format;
+    args->no_recurse = saved_no_recurse;
+    args->max_file_size_mb = saved_max_file_size_mb;
+    args->by_file = saved_by_file;
+    args->by_file_by_lang = saved_by_file_by_lang;
+    args->vcs = saved_vcs;
+    args->skip_leading = saved_skip_leading;
+    args->skip_leading_exts = saved_skip_leading_exts;
+    args->n_skip_leading_exts = saved_n_skip_leading_exts;
+    args->progress_rate = saved_progress_rate;
+    args->skip_uniqueness = saved_skip_uniqueness;
+    args->unique_file = saved_unique_file;
+    args->ignored_file = saved_ignored_file;
+    args->max_temp_size = saved_max_temp_size;
+    args->staging_dir = saved_staging_dir;
+    args->exclude_list_file = saved_exclude_list_file;
+    args->match_pattern = saved_match_pattern;
+    args->not_match_pattern = saved_not_match_pattern;
+    args->match_d_pattern = saved_match_d_pattern;
+    args->not_match_d_pattern = saved_not_match_d_pattern;
+    args->sql_file = saved_sql_file;
+    args->report_file = saved_report_file;
 
     // Allocate initial array for input files
     int capacity = 16;
@@ -328,6 +373,54 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
             }
         } else if (strncmp(argv[i], "--sdir=", 7) == 0) {
             args->staging_dir = strdup(argv[i] + 7);
+        } else if (strncmp(argv[i], "--skip-leading=", 15) == 0) {
+            char* spec = strdup(argv[i] + 15);
+            if (!spec) { free(args->input_files); return -1; }
+            char* comma = strchr(spec, ',');
+            if (comma) { *comma = '\0'; }
+            args->skip_leading = (int)strtol(spec, NULL, 10);
+            if (comma) {
+                char* token = strtok(comma + 1, ",");
+                while (token) {
+                    if (args->n_skip_leading_exts == 0) {
+                        args->skip_leading_exts = malloc(8 * sizeof(char*));
+                        if (!args->skip_leading_exts) { free(spec); free(args->input_files); return -1; }
+                    } else if ((args->n_skip_leading_exts & (args->n_skip_leading_exts - 1)) == 0 &&
+                               args->n_skip_leading_exts >= 8) {
+                        char** ne = realloc(args->skip_leading_exts, args->n_skip_leading_exts * 2 * sizeof(char*));
+                        if (!ne) { free(spec); free(args->input_files); return -1; }
+                        args->skip_leading_exts = ne;
+                    }
+                    args->skip_leading_exts[args->n_skip_leading_exts] = strdup(token);
+                    if (!args->skip_leading_exts[args->n_skip_leading_exts]) { free(spec); free(args->input_files); return -1; }
+                    args->n_skip_leading_exts++;
+                    token = strtok(NULL, ",");
+                }
+            }
+            free(spec);
+        } else if (strncmp(argv[i], "--progress-rate=", 16) == 0) {
+            args->progress_rate = atoi(argv[i] + 16);
+            if (args->progress_rate < 1) args->progress_rate = 1;
+        } else if (strcmp(argv[i], "--show-lang") == 0) {
+            args->show_lang = 1;
+        } else if (strncmp(argv[i], "--show-lang=", 12) == 0) {
+            args->show_lang = 1;
+            args->show_lang_arg = strdup(argv[i] + 12);
+        } else if (strcmp(argv[i], "--show-ext") == 0) {
+            args->show_ext = 1;
+        } else if (strncmp(argv[i], "--show-ext=", 11) == 0) {
+            args->show_ext = 1;
+            args->show_ext_arg = strdup(argv[i] + 11);
+        } else if (strcmp(argv[i], "--skip-uniqueness") == 0) {
+            args->skip_uniqueness = 1;
+        } else if (strncmp(argv[i], "--unique=", 9) == 0) {
+            args->unique_file = strdup(argv[i] + 9);
+        } else if (strncmp(argv[i], "--ignored=", 10) == 0) {
+            args->ignored_file = strdup(argv[i] + 10);
+        } else if (strcmp(argv[i], "--no-config") == 0) {
+            args->no_config = 1;
+        } else if (strncmp(argv[i], "--config=", 9) == 0) {
+            args->config_file = strdup(argv[i] + 9);
         } else {
             // Treat as input file
             if (args->n_input_files >= capacity) {
@@ -346,10 +439,15 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
     }
 
     // Return error if no input files and no flags set
-    if (args->n_input_files == 0 && !args->show_help && !args->show_version) {
+    if (args->n_input_files == 0 && !args->show_help && !args->show_version && !args->show_lang && !args->show_ext) {
         free(args->input_files);
         args->input_files = NULL;
         return -1;
+    }
+
+    // Set default output format if not set by config or CLI
+    if (args->output_format == 0) {
+        args->output_format = FORMAT_TEXT;
     }
 
     return 0;
@@ -447,6 +545,19 @@ void cli_free(CliArgs* args) {
         free(args->staging_dir);
         args->staging_dir = NULL;
     }
+    if (args->skip_leading_exts) {
+        for (int i = 0; i < args->n_skip_leading_exts; i++) {
+            free(args->skip_leading_exts[i]);
+        }
+        free(args->skip_leading_exts);
+        args->skip_leading_exts = NULL;
+    }
+    args->n_skip_leading_exts = 0;
+    if (args->config_file) { free(args->config_file); args->config_file = NULL; }
+    if (args->show_lang_arg) { free(args->show_lang_arg); args->show_lang_arg = NULL; }
+    if (args->show_ext_arg) { free(args->show_ext_arg); args->show_ext_arg = NULL; }
+    if (args->unique_file) { free(args->unique_file); args->unique_file = NULL; }
+    if (args->ignored_file) { free(args->ignored_file); args->ignored_file = NULL; }
 }
 
 void cli_print_help(const char* prog_name) {
@@ -487,8 +598,31 @@ void cli_print_help(const char* prog_name) {
     printf("  --quiet             Suppress warning messages\n");
     printf("  --max-temp-size=MB  Limit temp space usage in MB (default: 1024)\n");
     printf("  --sdir=DIR          Use specified directory for temp files\n");
+    printf("  --skip-leading=N,ext1,ext2  Skip N leading lines for given extensions\n");
+    printf("  --show-lang[=NAME]  Show supported languages (optionally filter by name)\n");
+    printf("  --show-ext[=EXT]    Show extension to language mapping (optionally filter by ext)\n");
+    printf("  --config=FILE       Load options from FILE (default: ~/.config/rloc/options.txt)\n");
+    printf("  --no-config         Do not load any config file\n");
+    printf("  --skip-uniqueness   Skip duplicate file detection via MD5\n");
+    printf("  --unique=FILE       Write unique (non-duplicate) file list to FILE\n");
+    printf("  --ignored=FILE      Write ignored file list to FILE\n");
 }
 
 void cli_print_version(void) {
     printf("rloc 0.1.0 (24 languages, built on %s %s)\n", __DATE__, __TIME__);
+}
+
+/* Pre-scan argv for --config= and --no-config only.
+ * Returns 0 on success.
+ */
+int cli_prescan_config(int argc, char** argv, CliArgs* args) {
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--no-config") == 0) {
+            args->no_config = 1;
+        } else if (strncmp(argv[i], "--config=", 9) == 0) {
+            args->config_file = strdup(argv[i] + 9);
+            if (!args->config_file) return -1;
+        }
+    }
+    return 0;
 }
