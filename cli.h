@@ -1,6 +1,7 @@
 #ifndef CLI_H
 #define CLI_H
 
+#include <stddef.h>
 #include "vcs.h"  // For VcsType enum
 
 // Output format enumeration
@@ -49,6 +50,8 @@ typedef struct {
     char* sql_file;              // --sql=<file> (SQL output file, "-" for stdout)
     char* report_file;           // --report-file=<path> (output to file)
     int quiet;                   // --quiet flag (suppress warnings)
+    size_t max_temp_size;        // --max-temp-size=MB (max temp space in bytes, 0 = default 1GB)
+    char* staging_dir;           // --sdir=DIR (staging/temp directory)
 } CliArgs;
 
 // Parse command line arguments. Returns 0 on success, -1 on error.

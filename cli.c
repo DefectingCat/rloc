@@ -36,6 +36,8 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
     args->sql_file = NULL;              // Default no SQL output
     args->report_file = NULL;           // Default stdout output
     args->quiet = 0;                    // Default not quiet
+    args->max_temp_size = 0;            // Default 0 (use 1GB default)
+    args->staging_dir = NULL;           // Default no staging dir
 
     // Allocate initial array for input files
     int capacity = 16;
@@ -319,6 +321,13 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
                 token = strtok(NULL, ",");
             }
             free(ext_str);
+        } else if (strncmp(argv[i], "--max-temp-size=", 16) == 0) {
+            long mb = atol(argv[i] + 16);
+            if (mb > 0) {
+                args->max_temp_size = (size_t)mb * 1024 * 1024;
+            }
+        } else if (strncmp(argv[i], "--sdir=", 7) == 0) {
+            args->staging_dir = strdup(argv[i] + 7);
         } else {
             // Treat as input file
             if (args->n_input_files >= capacity) {
@@ -434,6 +443,10 @@ void cli_free(CliArgs* args) {
         free(args->report_file);
         args->report_file = NULL;
     }
+    if (args->staging_dir) {
+        free(args->staging_dir);
+        args->staging_dir = NULL;
+    }
 }
 
 void cli_print_help(const char* prog_name) {
@@ -472,6 +485,8 @@ void cli_print_help(const char* prog_name) {
     printf("  --vcs=git|svn|auto  Use VCS to get file list (respects .gitignore)\n");
     printf("  --diff=COMMIT..COMMIT Compare changes between commits (git diff)\n");
     printf("  --quiet             Suppress warning messages\n");
+    printf("  --max-temp-size=MB  Limit temp space usage in MB (default: 1024)\n");
+    printf("  --sdir=DIR          Use specified directory for temp files\n");
 }
 
 void cli_print_version(void) {
