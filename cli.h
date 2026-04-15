@@ -8,7 +8,11 @@ typedef enum {
     FORMAT_TEXT,  // Default text table
     FORMAT_JSON,  // JSON output
     FORMAT_CSV,   // CSV output
-    FORMAT_MD     // Markdown output
+    FORMAT_MD,    // Markdown output
+    FORMAT_YAML,  // YAML output
+    FORMAT_XML,   // XML output
+    FORMAT_HTML,  // HTML output
+    FORMAT_SQL    // SQL output
 } OutputFormat;
 
 // VCS type is defined in vcs.h
@@ -31,12 +35,19 @@ typedef struct {
     int n_include_exts;          // Number of include extensions
     char** exclude_exts;         // --exclude-ext=ext1,ext2
     int n_exclude_exts;          // Number of exclude extensions
-    OutputFormat output_format;  // --json, --csv, --md
+    OutputFormat output_format;  // --json, --csv, --md, --yaml
     int by_file;                 // --by-file flag
+    int by_file_by_lang;         // --by-file-by-lang flag
     VcsType vcs;                 // --vcs=git/svn/auto
     char* diff_commit1;          // --diff=<commit1>..<commit2> (first commit)
     char* diff_commit2;          // --diff=<commit1>..<commit2> (second commit, NULL if single)
     char* exclude_list_file;     // --exclude-list-file=<path> (file with exclude patterns)
+    char* match_pattern;         // --match-f=<regex> (include files matching pattern)
+    char* not_match_pattern;     // --not-match-f=<regex> (exclude files matching pattern)
+    char* match_d_pattern;       // --match-d=<regex> (include dirs matching pattern)
+    char* not_match_d_pattern;   // --not-match-d=<regex> (exclude dirs matching pattern)
+    char* sql_file;              // --sql=<file> (SQL output file, "-" for stdout)
+    char* report_file;           // --report-file=<path> (output to file)
     int quiet;                   // --quiet flag (suppress warnings)
 } CliArgs;
 
