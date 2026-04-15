@@ -62,7 +62,10 @@ test_config_runner: tests/test_config.c tests/test_framework.c config.c cli.c ut
 test_output_runner: tests/test_output.c tests/test_framework.c output.c counter.c language.c lang_defs.c strlit.c
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_output.c tests/test_framework.c output.c counter.c language.c lang_defs.c strlit.c
 
-test: test_runner test_filelist_runner test_language_runner test_strlit_runner test_block_comments_runner test_continuation_runner test_archive_runner test_temp_manager_runner test_parallel_runner test_git_runner test_filter_runner test_diff_runner test_unique_runner test_config_runner test_util_runner test_vcs_runner test_output_runner
+test_phase4_runner: tests/test_phase4.c tests/test_framework.c cli.c
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_phase4.c tests/test_framework.c cli.c
+
+test: test_runner test_filelist_runner test_language_runner test_strlit_runner test_block_comments_runner test_continuation_runner test_archive_runner test_temp_manager_runner test_parallel_runner test_git_runner test_filter_runner test_diff_runner test_unique_runner test_config_runner test_util_runner test_vcs_runner test_output_runner test_phase4_runner
 	./test_runner
 	./test_filelist_runner
 	./test_language_runner
@@ -80,10 +83,11 @@ test: test_runner test_filelist_runner test_language_runner test_strlit_runner t
 	./test_config_runner
 	./test_vcs_runner
 	./test_output_runner
+	./test_phase4_runner
 
 # Clean target
 clean:
-	rm -f rloc test_runner test_filelist_runner test_language_runner test_strlit_runner test_block_comments_runner test_continuation_runner test_archive_runner test_temp_manager_runner test_parallel_runner test_git_runner test_filter_runner test_diff_runner test_unique_runner test_config_runner test_util_runner test_vcs_runner test_output_runner
+	rm -f rloc test_runner test_filelist_runner test_language_runner test_strlit_runner test_block_comments_runner test_continuation_runner test_archive_runner test_temp_manager_runner test_parallel_runner test_git_runner test_filter_runner test_diff_runner test_unique_runner test_config_runner test_util_runner test_vcs_runner test_output_runner test_phase4_runner
 
 # Format target
 fmt:

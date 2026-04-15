@@ -100,8 +100,8 @@ int cli_parse(int argc, char** argv, CliArgs* args);
 void cli_free(CliArgs* args);
 void cli_print_help(const char* prog_name);
 void cli_print_version(void);
-
-#endif
 /* Pre-scan argv for --config/--no-config before full parsing */
 int cli_prescan_config(int argc, char** argv, CliArgs* args);
+
+#endif
 

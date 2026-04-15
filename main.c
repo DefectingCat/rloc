@@ -1,5 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
 #include <ctype.h>
+#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -85,6 +86,14 @@ int main(int argc, char** argv) {
     if (args.show_version) { cli_print_version(); cli_free(&args); return 0; }
     if (args.show_lang) { lang_show(args.show_lang_arg); cli_free(&args); return 0; }
     if (args.show_ext) { ext_show(args.show_ext_arg); cli_free(&args); return 0; }
+    if (args.explain_lang) { explain_language(args.explain_lang); cli_free(&args); return 0; }
+
+    // Validate mutually exclusive options
+    if (args.strip_comments && args.strip_code) {
+        fprintf(stderr, "Error: --strip-comments and --strip-code are mutually exclusive\n");
+        cli_free(&args);
+        return 1;
+    }
 
     // Handle --list-file: read input paths from file or STDIN
     if (args.list_file != NULL) {
@@ -178,6 +187,8 @@ int main(int argc, char** argv) {
     config.not_match_pattern = args.not_match_pattern;
     config.match_d_pattern = args.match_d_pattern;
     config.not_match_d_pattern = args.not_match_d_pattern;
+    config.fullpath = args.fullpath;
+    config.follow_links = args.follow_links;
 
     if (args.exclude_list_file) {
         if (filelist_load_exclude_patterns(args.exclude_list_file, &config) != 0) {
@@ -452,6 +463,48 @@ skip_normal_scan:
             lang = detect_language(filepath);
         }
 
+        // Apply --lang-no-ext for files without extension
+        if (lang == NULL && args.lang_no_ext) {
+            const char* ext = get_extension(filepath);
+            if (ext == NULL) {
+                lang = get_language_by_name(args.lang_no_ext);
+            }
+        }
+
+        // Apply --script-lang for shebang language override
+        if (lang == NULL && args.n_script_lang > 0) {
+            // Try shebang detection with custom mappings
+            FILE* fp = fopen(filepath, "r");
+            if (fp) {
+                char line[256];
+                if (fgets(line, sizeof(line), fp)) {
+                    fclose(fp);
+                    if (line[0] == '#' && line[1] == '!') {
+                        // Extract interpreter name
+                        char* interp = line + 2;
+                        while (*interp && isspace((unsigned char)*interp)) interp++;
+                        char* interp_end = interp;
+                        while (*interp_end && !isspace((unsigned char)*interp_end)) interp_end++;
+                        *interp_end = '\0';
+                        // Get just the name without path
+                        const char* interp_name = strrchr(interp, '/');
+                        if (interp_name) interp_name++;
+                        else interp_name = interp;
+                        // Match against --script-lang mappings
+                        for (int j = 0; j < args.n_script_lang; j++) {
+                            if (strcmp(interp_name, args.script_names[j]) == 0 ||
+                                strstr(interp_name, args.script_names[j]) == interp_name) {
+                                lang = get_language_by_name(args.script_langs[j]);
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    fclose(fp);
+                }
+            }
+        }
+
         if (args.n_include_langs > 0) {
             if (lang == NULL || !is_in_string_array(lang->name, args.include_langs, args.n_include_langs)) {
                 files[i].ignore_reason = "include-lang filter";
@@ -505,7 +558,107 @@ skip_normal_scan:
         }
     }
 
+    // Write found file list if requested (--found)
+    if (args.found_file) {
+        FILE* fp = fopen(args.found_file, "w");
+        if (fp) {
+            for (int i = 0; i < filelist.count; i++)
+                fprintf(fp, "%s\n", files[i].filepath);
+            fclose(fp);
+        }
+    }
+
+    // Write counted file list if requested (--counted)
+    if (args.counted_file) {
+        FILE* fp = fopen(args.counted_file, "w");
+        if (fp) {
+            for (int i = 0; i < filelist.count; i++)
+                if (files[i].lang != NULL)
+                    fprintf(fp, "%s\n", files[i].filepath);
+            fclose(fp);
+        }
+    }
+
+    // Write categorized file list if requested (--categorized)
+    if (args.categorized_file) {
+        FILE* fp = fopen(args.categorized_file, "w");
+        if (fp) {
+            fprintf(fp, "filepath\tsize\tlanguage\tcategory\n");
+            for (int i = 0; i < filelist.count; i++) {
+                long size = get_file_size(files[i].filepath);
+                const char* lang_name = files[i].lang ? files[i].lang->name : "(unknown)";
+                const char* category = files[i].ignore_reason ? files[i].ignore_reason : "counted";
+                fprintf(fp, "%s\t%ld\t%s\t%s\n", files[i].filepath, size, lang_name, category);
+            }
+            fclose(fp);
+        }
+    }
+
+    // Apply --include-content/--exclude-content filtering
+    if (args.include_content || args.exclude_content) {
+        regex_t include_regex, exclude_regex;
+        int has_include = 0, has_exclude = 0;
+
+        if (args.include_content) {
+            if (regcomp(&include_regex, args.include_content, REG_EXTENDED | REG_NOSUB) == 0) {
+                has_include = 1;
+            }
+        }
+        if (args.exclude_content) {
+            if (regcomp(&exclude_regex, args.exclude_content, REG_EXTENDED | REG_NOSUB) == 0) {
+                has_exclude = 1;
+            }
+        }
+
+        for (int i = 0; i < filelist.count; i++) {
+            if (files[i].lang == NULL || files[i].ignore_reason != NULL) continue;
+
+            // Read file content to check against regex
+            FILE* fp = fopen(files[i].filepath, "r");
+            if (!fp) continue;
+
+            int matched_include = 0, matched_exclude = 0;
+            char line[4096];
+            while (fgets(line, sizeof(line), fp) != NULL) {
+                if (has_include && regexec(&include_regex, line, 0, NULL, 0) == 0) {
+                    matched_include = 1;
+                }
+                if (has_exclude && regexec(&exclude_regex, line, 0, NULL, 0) == 0) {
+                    matched_exclude = 1;
+                }
+                if (matched_include && matched_exclude) break;  // Found both, no need to continue
+            }
+            fclose(fp);
+
+            // Apply filters
+            if (has_include && !matched_include) {
+                files[i].ignore_reason = "include-content filter";
+                files[i].lang = NULL;
+            }
+            if (has_exclude && matched_exclude) {
+                files[i].ignore_reason = "exclude-content filter";
+                files[i].lang = NULL;
+            }
+        }
+
+        if (has_include) regfree(&include_regex);
+        if (has_exclude) regfree(&exclude_regex);
+    }
+
     // Pass 3: Count lines with language awareness
+    // Apply --timeout filtering based on file size estimate
+    if (args.timeout_sec > 0) {
+        // Estimate processing time based on file size (rough: 1MB ~ 1s for typical code)
+        for (int i = 0; i < filelist.count; i++) {
+            if (files[i].lang == NULL || files[i].ignore_reason != NULL) continue;
+            long size = get_file_size(files[i].filepath);
+            if (size > args.timeout_sec * 1024 * 1024) {  // size > timeout * 1MB
+                files[i].ignore_reason = "timeout estimate";
+                files[i].lang = NULL;
+            }
+        }
+    }
+
     // Build list of files to count (those with identified languages)
     int n_count_files = 0;
     for (int i = 0; i < filelist.count; i++) {
@@ -614,6 +767,88 @@ skip_normal_scan:
 
     clock_t end_time = clock();
     double elapsed_sec = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+
+    // Generate stripped files if requested (--strip-comments or --strip-code)
+    if (args.strip_comments || args.strip_code) {
+        for (int i = 0; i < filelist.count; i++) {
+            if (files[i].lang == NULL || files[i].ignore_reason != NULL) continue;
+
+            // Read source file
+            FILE* src_fp = fopen(files[i].filepath, "r");
+            if (!src_fp) continue;
+
+            // Build output filename
+            char out_path[2048];
+            if (args.original_dir) {
+                snprintf(out_path, sizeof(out_path), "%s.%s", files[i].filepath,
+                         args.strip_comments ? args.strip_comments : args.strip_code);
+            } else {
+                const char* basename = strrchr(files[i].filepath, '/');
+                basename = basename ? basename + 1 : files[i].filepath;
+                snprintf(out_path, sizeof(out_path), "%s.%s", basename,
+                         args.strip_comments ? args.strip_comments : args.strip_code);
+            }
+
+            FILE* out_fp = fopen(out_path, "w");
+            if (!out_fp) {
+                fclose(src_fp);
+                continue;
+            }
+
+            // Process each line
+            char line[4096];
+            while (fgets(line, sizeof(line), src_fp) != NULL) {
+                size_t len = strlen(line);
+                // Remove trailing newline for analysis
+                while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) {
+                    line[len-1] = '\0';
+                    len--;
+                }
+
+                // Determine line type
+                int is_blank = 1;
+                for (size_t j = 0; j < len; j++) {
+                    if (!isspace((unsigned char)line[j])) {
+                        is_blank = 0;
+                        break;
+                    }
+                }
+
+                // Simple comment detection based on language
+                int is_comment = 0;
+                if (files[i].lang && files[i].lang->generic_filters) {
+                    for (size_t f = 0; f < files[i].lang->generic_filter_count; f++) {
+                        const GenericFilter* gf = &files[i].lang->generic_filters[f];
+                        if (gf->type == FILTER_REMOVE_INLINE) {
+                            size_t plen = strlen(gf->pattern_open);
+                            const char* trimmed = line;
+                            while (*trimmed && isspace((unsigned char)*trimmed)) trimmed++;
+                            if (strncmp(trimmed, gf->pattern_open, plen) == 0) {
+                                is_comment = 1;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Write line based on mode
+                if (args.strip_comments) {
+                    // Strip blank and comment lines - keep only code
+                    if (!is_blank && !is_comment) {
+                        fprintf(out_fp, "%s\n", line);
+                    }
+                } else if (args.strip_code) {
+                    // Strip code lines - keep only blank and comments
+                    if (is_blank || is_comment) {
+                        fprintf(out_fp, "%s\n", line);
+                    }
+                }
+            }
+
+            fclose(src_fp);
+            fclose(out_fp);
+        }
+    }
 
     FILE* report_fp = NULL;
     if (args.report_file) {

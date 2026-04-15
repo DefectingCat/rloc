@@ -192,3 +192,56 @@ const Language* get_language_by_name(const char* name) {
 
     return NULL;
 }
+
+/* Explain comment filters for a language */
+void explain_language(const char* lang_name) {
+    if (!lang_name) {
+        fprintf(stderr, "Error: No language specified for --explain\n");
+        return;
+    }
+
+    const Language* lang = get_language_by_name(lang_name);
+    if (!lang) {
+        fprintf(stderr, "Error: Unknown language '%s'\n", lang_name);
+        fprintf(stderr, "Use --show-lang to see supported languages\n");
+        return;
+    }
+
+    printf("Language: %s\n", lang->name);
+    printf("Extensions: %s\n", lang->extensions ? lang->extensions : "(none)");
+    printf("Filenames: %s\n", lang->filenames ? lang->filenames : "(none)");
+    printf("Shebangs: %s\n", lang->shebangs ? lang->shebangs : "(none)");
+    printf("\n");
+
+    if (lang->generic_filter_count == 0) {
+        printf("Comment filters: None (language has no defined comment patterns)\n");
+    } else {
+        printf("Comment filters (%zu):\n", lang->generic_filter_count);
+        for (size_t i = 0; i < lang->generic_filter_count; i++) {
+            const GenericFilter* f = &lang->generic_filters[i];
+            switch (f->type) {
+                case FILTER_REMOVE_MATCHES:
+                    printf("  [%zu] REMOVE_MATCHES: pattern='%s'\n", i + 1, f->pattern_open);
+                    printf("       Removes entire lines matching this pattern\n");
+                    break;
+                case FILTER_REMOVE_INLINE:
+                    printf("  [%zu] REMOVE_INLINE: pattern='%s'\n", i + 1, f->pattern_open);
+                    printf("       Removes inline comments (from pattern to end of line)\n");
+                    break;
+                case FILTER_REMOVE_BETWEEN:
+                    printf("  [%zu] REMOVE_BETWEEN: open='%s', close='%s'\n", i + 1, f->pattern_open, f->pattern_close);
+                    printf("       Removes content between open and close patterns (multi-line blocks)\n");
+                    break;
+            }
+        }
+    }
+
+    if (lang->comment_hook) {
+        printf("\nCustom comment hook: Yes (language-specific handling)\n");
+    }
+
+    if (lang->str_delimiters) {
+        printf("\nString delimiters: '%s'\n", lang->str_delimiters);
+        printf("String escape: '%s'\n", lang->str_escape ? lang->str_escape : "(none)");
+    }
+}

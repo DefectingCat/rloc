@@ -137,8 +137,11 @@ int filelist_scan(const char* path, const FilelistConfig* config, FileList* list
         }
 
         if (is_symlink(full_path) && is_directory(full_path)) {
-            free(full_path);
-            continue;
+            // Skip symlink directories unless --follow-links is set
+            if (!config || !config->follow_links) {
+                free(full_path);
+                continue;
+            }
         }
 
         if (is_directory(full_path)) {
@@ -191,7 +194,13 @@ int filelist_scan(const char* path, const FilelistConfig* config, FileList* list
 
             // Check against regex match pattern (--match-f)
             if (config && config->match_pattern) {
-                if (!matches_regex(full_path, config->match_pattern)) {
+                const char* match_target = full_path;
+                if (!config->fullpath) {
+                    // Match against basename only
+                    const char* basename = strrchr(full_path, '/');
+                    match_target = basename ? basename + 1 : full_path;
+                }
+                if (!matches_regex(match_target, config->match_pattern)) {
                     free(full_path);
                     continue;
                 }
@@ -199,7 +208,12 @@ int filelist_scan(const char* path, const FilelistConfig* config, FileList* list
 
             // Check against regex not-match pattern (--not-match-f)
             if (config && config->not_match_pattern) {
-                if (matches_regex(full_path, config->not_match_pattern)) {
+                const char* match_target = full_path;
+                if (!config->fullpath) {
+                    const char* basename = strrchr(full_path, '/');
+                    match_target = basename ? basename + 1 : full_path;
+                }
+                if (matches_regex(match_target, config->not_match_pattern)) {
                     free(full_path);
                     continue;
                 }

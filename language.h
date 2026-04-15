@@ -40,4 +40,7 @@ const Language* detect_language(const char* filepath);
 const Language* detect_language_by_shebang(const char* filepath);
 const Language* get_language_by_name(const char* name);
 
+/* Diagnostic functions */
+void explain_language(const char* lang_name);
+
 #endif /* LANGUAGE_H */

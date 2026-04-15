@@ -439,6 +439,84 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
             args->list_file = strdup(argv[i] + 12);
         } else if (strncmp(argv[i], "--force-lang=", 13) == 0) {
             args->force_lang = strdup(argv[i] + 13);
+        } else if (strncmp(argv[i], "--strip-comments=", 17) == 0) {
+            args->strip_comments = strdup(argv[i] + 17);
+        } else if (strncmp(argv[i], "--strip-code=", 13) == 0) {
+            args->strip_code = strdup(argv[i] + 13);
+        } else if (strcmp(argv[i], "--original-dir") == 0) {
+            args->original_dir = 1;
+        } else if (strcmp(argv[i], "--fullpath") == 0) {
+            args->fullpath = 1;
+        } else if (strncmp(argv[i], "--include-content=", 18) == 0) {
+            args->include_content = strdup(argv[i] + 18);
+        } else if (strncmp(argv[i], "--exclude-content=", 18) == 0) {
+            args->exclude_content = strdup(argv[i] + 18);
+        } else if (strncmp(argv[i], "--timeout=", 10) == 0) {
+            args->timeout_sec = atoi(argv[i] + 10);
+        } else if (strncmp(argv[i], "--diff-timeout=", 15) == 0) {
+            args->diff_timeout_sec = atoi(argv[i] + 15);
+        } else if (strncmp(argv[i], "--ignore-regex=", 15) == 0) {
+            // Format: LANG|REGEX or *|REGEX
+            char* spec = strdup(argv[i] + 15);
+            if (!spec) { free(args->input_files); return -1; }
+            char* sep = strchr(spec, '|');
+            if (sep) {
+                *sep = '\0';
+                if (args->n_ignore_regex == 0) {
+                    args->ignore_regex_langs = malloc(8 * sizeof(char*));
+                    args->ignore_regex_patterns = malloc(8 * sizeof(char*));
+                    if (!args->ignore_regex_langs || !args->ignore_regex_patterns) {
+                        free(spec); free(args->input_files); return -1;
+                    }
+                } else if ((args->n_ignore_regex & (args->n_ignore_regex - 1)) == 0 && args->n_ignore_regex >= 8) {
+                    char** nl = realloc(args->ignore_regex_langs, args->n_ignore_regex * 2 * sizeof(char*));
+                    char** np = realloc(args->ignore_regex_patterns, args->n_ignore_regex * 2 * sizeof(char*));
+                    if (!nl || !np) { free(spec); free(args->input_files); return -1; }
+                    args->ignore_regex_langs = nl;
+                    args->ignore_regex_patterns = np;
+                }
+                args->ignore_regex_langs[args->n_ignore_regex] = strdup(spec);
+                args->ignore_regex_patterns[args->n_ignore_regex] = strdup(sep + 1);
+                args->n_ignore_regex++;
+            }
+            free(spec);
+        } else if (strncmp(argv[i], "--lang-no-ext=", 14) == 0) {
+            args->lang_no_ext = strdup(argv[i] + 14);
+        } else if (strncmp(argv[i], "--script-lang=", 14) == 0) {
+            // Format: LANG,S
+            char* spec = strdup(argv[i] + 14);
+            if (!spec) { free(args->input_files); return -1; }
+            char* comma = strchr(spec, ',');
+            if (comma) {
+                *comma = '\0';
+                if (args->n_script_lang == 0) {
+                    args->script_langs = malloc(8 * sizeof(char*));
+                    args->script_names = malloc(8 * sizeof(char*));
+                    if (!args->script_langs || !args->script_names) {
+                        free(spec); free(args->input_files); return -1;
+                    }
+                } else if ((args->n_script_lang & (args->n_script_lang - 1)) == 0 && args->n_script_lang >= 8) {
+                    char** nl = realloc(args->script_langs, args->n_script_lang * 2 * sizeof(char*));
+                    char** ns = realloc(args->script_names, args->n_script_lang * 2 * sizeof(char*));
+                    if (!nl || !ns) { free(spec); free(args->input_files); return -1; }
+                    args->script_langs = nl;
+                    args->script_names = ns;
+                }
+                args->script_langs[args->n_script_lang] = strdup(spec);
+                args->script_names[args->n_script_lang] = strdup(comma + 1);
+                args->n_script_lang++;
+            }
+            free(spec);
+        } else if (strcmp(argv[i], "--follow-links") == 0) {
+            args->follow_links = 1;
+        } else if (strncmp(argv[i], "--explain=", 10) == 0) {
+            args->explain_lang = strdup(argv[i] + 10);
+        } else if (strncmp(argv[i], "--categorized=", 14) == 0) {
+            args->categorized_file = strdup(argv[i] + 14);
+        } else if (strncmp(argv[i], "--counted=", 10) == 0) {
+            args->counted_file = strdup(argv[i] + 10);
+        } else if (strncmp(argv[i], "--found=", 8) == 0) {
+            args->found_file = strdup(argv[i] + 8);
         } else {
             // Treat as input file
             if (args->n_input_files >= capacity) {
@@ -457,7 +535,7 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
     }
 
     // Return error if no input files and no flags set (but allow --list-file to provide files later)
-    if (args->n_input_files == 0 && !args->show_help && !args->show_version && !args->show_lang && !args->show_ext && !args->list_file) {
+    if (args->n_input_files == 0 && !args->show_help && !args->show_version && !args->show_lang && !args->show_ext && !args->list_file && !args->explain_lang) {
         free(args->input_files);
         args->input_files = NULL;
         return -1;
@@ -582,6 +660,38 @@ void cli_free(CliArgs* args) {
     if (args->git_ref) { free(args->git_ref); args->git_ref = NULL; }
     if (args->list_file) { free(args->list_file); args->list_file = NULL; }
     if (args->force_lang) { free(args->force_lang); args->force_lang = NULL; }
+    // Phase 4 cleanup
+    if (args->strip_comments) { free(args->strip_comments); args->strip_comments = NULL; }
+    if (args->strip_code) { free(args->strip_code); args->strip_code = NULL; }
+    if (args->include_content) { free(args->include_content); args->include_content = NULL; }
+    if (args->exclude_content) { free(args->exclude_content); args->exclude_content = NULL; }
+    if (args->ignore_regex_langs) {
+        for (int i = 0; i < args->n_ignore_regex; i++) free(args->ignore_regex_langs[i]);
+        free(args->ignore_regex_langs);
+        args->ignore_regex_langs = NULL;
+    }
+    if (args->ignore_regex_patterns) {
+        for (int i = 0; i < args->n_ignore_regex; i++) free(args->ignore_regex_patterns[i]);
+        free(args->ignore_regex_patterns);
+        args->ignore_regex_patterns = NULL;
+    }
+    args->n_ignore_regex = 0;
+    if (args->lang_no_ext) { free(args->lang_no_ext); args->lang_no_ext = NULL; }
+    if (args->script_langs) {
+        for (int i = 0; i < args->n_script_lang; i++) free(args->script_langs[i]);
+        free(args->script_langs);
+        args->script_langs = NULL;
+    }
+    if (args->script_names) {
+        for (int i = 0; i < args->n_script_lang; i++) free(args->script_names[i]);
+        free(args->script_names);
+        args->script_names = NULL;
+    }
+    args->n_script_lang = 0;
+    if (args->explain_lang) { free(args->explain_lang); args->explain_lang = NULL; }
+    if (args->categorized_file) { free(args->categorized_file); args->categorized_file = NULL; }
+    if (args->counted_file) { free(args->counted_file); args->counted_file = NULL; }
+    if (args->found_file) { free(args->found_file); args->found_file = NULL; }
 }
 
 void cli_print_help(const char* prog_name) {
@@ -637,6 +747,23 @@ void cli_print_help(const char* prog_name) {
     printf("  --extract-with=CMD  Custom archive extraction command\n");
     printf("  --skip-archive=REGEX Skip archives matching pattern\n");
     printf("  --max-archive-depth=N Maximum archive nesting depth (default 3)\n");
+    // Phase 4 options
+    printf("  --strip-comments=EXT  Write stripped (no comments/blanks) files with .EXT suffix\n");
+    printf("  --strip-code=EXT      Write stripped (no code) files with .EXT suffix\n");
+    printf("  --original-dir        Write stripped files to original directory\n");
+    printf("  --fullpath            Match full path instead of basename for --match-f\n");
+    printf("  --include-content=REGEX Include files containing matching content\n");
+    printf("  --exclude-content=REGEX Exclude files containing matching content\n");
+    printf("  --timeout=N           Processing timeout per file in seconds (0 = unlimited)\n");
+    printf("  --diff-timeout=N      Diff processing timeout per file in seconds\n");
+    printf("  --ignore-regex='LANG|REGEX' Ignore lines matching regex for language(s)\n");
+    printf("  --lang-no-ext=LANG    Use LANG for files without extension\n");
+    printf("  --script-lang=LANG,S  Count files with shebang S as LANG\n");
+    printf("  --follow-links        Follow symbolic links to directories (Unix only)\n");
+    printf("  --explain=LANG        Show comment filters for language\n");
+    printf("  --categorized=FILE    Save categorized file info to FILE\n");
+    printf("  --counted=FILE        Save counted file names to FILE\n");
+    printf("  --found=FILE          Save all found file names to FILE\n");
 }
 
 void cli_print_version(void) {

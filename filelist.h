@@ -12,6 +12,8 @@ typedef struct {
     char* not_match_pattern;  // Regex pattern for --not-match-f
     char* match_d_pattern;    // Regex pattern for --match-d
     char* not_match_d_pattern; // Regex pattern for --not-match-d
+    int fullpath;             // Match full path instead of basename
+    int follow_links;         // Follow symlinks to directories
 } FilelistConfig;
 
 typedef struct {
