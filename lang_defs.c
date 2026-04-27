@@ -102,6 +102,10 @@ static const GenericFilter yaml_filters[] = {
     {FILTER_REMOVE_INLINE, "#", NULL},
 };
 
+static const GenericFilter nginx_filters[] = {
+    {FILTER_REMOVE_INLINE, "#", NULL},
+};
+
 /* Language definitions array */
 const Language g_languages[NUM_LANGUAGES] = {{.name = "Python",
                                               .extensions = "py,pyw",
@@ -327,6 +331,15 @@ const Language g_languages[NUM_LANGUAGES] = {{.name = "Python",
                                               .generic_filters = yaml_filters,
                                               .comment_hook = NULL,
                                               .str_delimiters = "\"",
+                                              .str_escape = "\\"},
+                                             {.name = "nginx",
+                                              .extensions = NULL,
+                                              .filenames = "nginx.conf",
+                                              .shebangs = NULL,
+                                              .generic_filter_count = 1,
+                                              .generic_filters = nginx_filters,
+                                              .comment_hook = NULL,
+                                              .str_delimiters = "\"'",
                                               .str_escape = "\\"}};
 
 /* === Custom Language Definition Implementation === */

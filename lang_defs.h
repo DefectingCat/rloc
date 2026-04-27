@@ -3,7 +3,7 @@
 
 #include "language.h"
 
-#define NUM_LANGUAGES 25
+#define NUM_LANGUAGES 26
 #define MAX_CUSTOM_LANGUAGES 64
 #define MAX_CUSTOM_FILTERS 8
 
