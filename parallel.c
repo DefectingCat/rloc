@@ -110,9 +110,10 @@ int parallel_count_files(ParallelInputFile* files, int n_files, ParallelConfig* 
                 }
             }
 
-            if (count_file_with_lang(files[i].filepath, lang, skip_lines_worker, &results[count].counts) ==
-                0) {
-                strncpy(results[count].filepath, files[i].filepath, sizeof(results[count].filepath) - 1);
+            if (count_file_with_lang(files[i].filepath, lang, skip_lines_worker,
+                                     &results[count].counts) == 0) {
+                strncpy(results[count].filepath, files[i].filepath,
+                        sizeof(results[count].filepath) - 1);
                 results[count].language = lang;
                 count++;
             }

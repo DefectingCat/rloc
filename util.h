@@ -1,7 +1,7 @@
 #ifndef UTIL_H
 #define UTIL_H
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <sys/types.h>
 
 /* FileInfo - cached file attributes from single stat call */

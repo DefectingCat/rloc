@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <strings.h>
+#include <sys/stat.h>
 
 #include "util.h"
 
@@ -16,21 +16,17 @@
 
 /* Known source code extensions - these are always text files */
 static const char* text_extensions[] = {
-    "c", "h", "cpp", "cxx", "cc", "hpp", "hxx", "hh",
-    "py", "pyw", "js", "mjs", "ts", "tsx",
-    "java", "go", "rs", "rb", "php", "cs",
-    "swift", "kt", "kts", "sh", "bash", "zsh", "ksh",
-    "pl", "pm", "css", "html", "htm", "sql",
-    "xml", "yaml", "yml", "toml", "json", "md", "markdown",
-    "vue", "lua", "conf"
-};
+    "c",   "h",    "cpp",  "cxx",  "cc",   "hpp", "hxx",      "hh",  "py",   "pyw",   "js",
+    "mjs", "ts",   "tsx",  "java", "go",   "rs",  "rb",       "php", "cs",   "swift", "kt",
+    "kts", "sh",   "bash", "zsh",  "ksh",  "pl",  "pm",       "css", "html", "htm",   "sql",
+    "xml", "yaml", "yml",  "toml", "json", "md",  "markdown", "vue", "lua",  "conf"};
 static const int n_text_extensions = sizeof(text_extensions) / sizeof(text_extensions[0]);
 
 /* Check if extension is a known text file extension */
 static bool is_known_text_extension(const char* filepath) {
     const char* ext = strrchr(filepath, '.');
     if (!ext || ext == filepath) return false;
-    ext++;  /* Skip the dot */
+    ext++; /* Skip the dot */
 
     for (int i = 0; i < n_text_extensions; i++) {
         if (strcasecmp(ext, text_extensions[i]) == 0) {
@@ -181,9 +177,9 @@ int filelist_scan(const char* path, const FilelistConfig* config, FileList* list
             is_regular = true;
         } else if (d_type == DT_LNK) {
             is_symlink = true;
-            need_stat = true;  /* Need to check symlink target */
+            need_stat = true; /* Need to check symlink target */
         } else if (d_type == DT_UNKNOWN) {
-            need_stat = true;  /* FS doesn't support d_type, fallback to stat */
+            need_stat = true; /* FS doesn't support d_type, fallback to stat */
         } else {
             /* Other types (DT_BLK, DT_CHR, DT_FIFO, DT_SOCK) - skip */
             free(full_path);

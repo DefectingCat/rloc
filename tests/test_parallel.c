@@ -35,11 +35,9 @@ TEST(test_small_count_fallback) {
     config.chunk_size = 100;
     config.timeout_sec = 300;
 
-    ParallelInputFile files[] = {
-        {.filepath = "main.c", .lang = NULL},
-        {.filepath = "cli.c", .lang = NULL},
-        {.filepath = "counter.c", .lang = NULL}
-    };
+    ParallelInputFile files[] = {{.filepath = "main.c", .lang = NULL},
+                                 {.filepath = "cli.c", .lang = NULL},
+                                 {.filepath = "counter.c", .lang = NULL}};
     ParallelResult results[10];
     int n_results = 10;
 
