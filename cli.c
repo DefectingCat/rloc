@@ -101,7 +101,7 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
             args->show_help = 1;
-        } else if (strcmp(argv[i], "--version") == 0) {
+        } else if (strcmp(argv[i], "--version") == 0 || strcmp(argv[i], "-v") == 0) {
             args->show_version = 1;
         } else if (strcmp(argv[i], "--no-recurse") == 0) {
             args->no_recurse = 1;
@@ -744,7 +744,7 @@ void cli_print_help(const char* prog_name) {
     printf("Usage: %s [options] <file|dir> [file|dir ...]\n", prog_name);
     printf("Options:\n");
     printf("  --help              Show this help message\n");
-    printf("  --version           Show version information\n");
+    printf("  -v, --version       Show version information\n");
     printf("  --no-recurse        Don't recurse into subdirectories\n");
     printf(
         "  --max-file-size=MB  Skip files larger than N megabytes (default: "
