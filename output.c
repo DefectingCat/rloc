@@ -1,4 +1,5 @@
 #include "output.h"
+#include "version.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -129,9 +130,9 @@ void output_text(const FileStats* files, int n_files, double elapsed_sec) {
 
     // Print URL line
     printf(
-        "https://github.com/rloc/rloc v 0.1.0  T=%.2f s (%.1f files/s, %.1f "
+        "https://github.com/rloc/rloc v %s  T=%.2f s (%.1f files/s, %.1f "
         "lines/s)\n",
-        elapsed_sec, files_per_sec, lines_per_sec);
+        RLOC_VERSION, elapsed_sec, files_per_sec, lines_per_sec);
 
     // Print separator line
     printf(
@@ -183,7 +184,7 @@ void output_text_by_file(const FileStats* files, int n_files, double elapsed_sec
     }
 
     double files_per_sec = (elapsed_sec > 0) ? (n_valid / elapsed_sec) : 0.0;
-    printf("https://github.com/rloc/rloc v 0.1.0  T=%.2f s (%.1f files/s)\n", elapsed_sec,
+    printf("https://github.com/rloc/rloc v %s  T=%.2f s (%.1f files/s)\n", RLOC_VERSION, elapsed_sec,
            files_per_sec);
     printf("\n");
 
@@ -224,7 +225,7 @@ void output_json(const FileStats* files, int n_files, double elapsed_sec) {
     printf("{\n");
     printf("  \"header\" : {\n");
     printf("    \"cloc_url\"           : \"github.com/rloc/rloc\",\n");
-    printf("    \"cloc_version\"       : \"0.1.0\",\n");
+    printf("    \"cloc_version\"       : \"%s\",\n", RLOC_VERSION);
     printf("    \"elapsed_seconds\"    : %.3f,\n", elapsed_sec);
     printf("    \"n_files\"            : %d,\n", n_valid);
     printf("    \"n_lines\"            : %d,\n", total_blank + total_comment + total_code);
@@ -260,7 +261,7 @@ void output_json_by_file(const FileStats* files, int n_files, double elapsed_sec
     printf("{\n");
     printf("  \"header\" : {\n");
     printf("    \"cloc_url\"           : \"github.com/rloc/rloc\",\n");
-    printf("    \"cloc_version\"       : \"0.1.0\",\n");
+    printf("    \"cloc_version\"       : \"%s\",\n", RLOC_VERSION);
     printf("    \"elapsed_seconds\"    : %.3f,\n", elapsed_sec);
     printf("    \"n_files\"            : %d,\n", n_valid);
     printf("    \"files_per_second\"   : %.1f\n", files_per_sec);
@@ -324,7 +325,7 @@ void output_md(const FileStats* files, int n_files, double elapsed_sec) {
     int n_valid = count_valid_files(files, n_files);
 
     double files_per_sec = (elapsed_sec > 0) ? (n_valid / elapsed_sec) : 0.0;
-    printf("cloc|github.com/rloc/rloc v 0.1.0  T=%.2f s (%.1f files/s)\n", elapsed_sec,
+    printf("cloc|github.com/rloc/rloc v %s  T=%.2f s (%.1f files/s)\n", RLOC_VERSION, elapsed_sec,
            files_per_sec);
     printf("--- | ---\n\n");
 
@@ -349,7 +350,7 @@ void output_md_by_file(const FileStats* files, int n_files, double elapsed_sec) 
     int n_valid = count_valid_files(files, n_files);
 
     double files_per_sec = (elapsed_sec > 0) ? (n_valid / elapsed_sec) : 0.0;
-    printf("cloc|github.com/rloc/rloc v 0.1.0  T=%.2f s (%.1f files/s)\n", elapsed_sec,
+    printf("cloc|github.com/rloc/rloc v %s  T=%.2f s (%.1f files/s)\n", RLOC_VERSION, elapsed_sec,
            files_per_sec);
     printf("--- | ---\n\n");
 
@@ -529,7 +530,7 @@ void output_alignment_json(const AlignmentEntry* entries, int n_entries,
     printf("{\n");
     printf("  \"header\" : {\n");
     printf("    \"cloc_url\"           : \"github.com/rloc/rloc\",\n");
-    printf("    \"cloc_version\"       : \"0.1.0\",\n");
+    printf("    \"cloc_version\"       : \"%s\",\n", RLOC_VERSION);
     printf("    \"diff\"               : \"%s..%s\",\n", ref1, ref2);
     printf("    \"n_files\"            : %d,\n", n_added + n_removed + n_modified);
     printf("    \"n_added\"            : %d,\n", n_added);
@@ -589,7 +590,7 @@ void output_yaml(const FileStats* files, int n_files, double elapsed_sec) {
     printf("---\n");
     printf("header:\n");
     printf("  cloc_url: github.com/rloc/rloc\n");
-    printf("  cloc_version: 0.1.0\n");
+    printf("  cloc_version: %s\n", RLOC_VERSION);
     printf("  elapsed_seconds: %.2f\n", elapsed_sec);
     printf("  n_files: %d\n", n_valid);
     printf("  files_per_second: %.1f\n", (elapsed_sec > 0) ? (n_valid / elapsed_sec) : 0.0);
@@ -620,7 +621,7 @@ void output_yaml_by_file(const FileStats* files, int n_files, double elapsed_sec
     printf("---\n");
     printf("header:\n");
     printf("  cloc_url: github.com/rloc/rloc\n");
-    printf("  cloc_version: 0.1.0\n");
+    printf("  cloc_version: %s\n", RLOC_VERSION);
     printf("  elapsed_seconds: %.2f\n", elapsed_sec);
     printf("  n_files: %d\n", n_valid);
     printf("  files_per_second: %.1f\n", (elapsed_sec > 0) ? (n_valid / elapsed_sec) : 0.0);
@@ -702,7 +703,7 @@ void output_xml(const FileStats* files, int n_files, double elapsed_sec) {
     printf("<results>\n");
     printf("  <header>\n");
     printf("    <cloc_url>github.com/rloc/rloc</cloc_url>\n");
-    printf("    <cloc_version>0.1.0</cloc_version>\n");
+    printf("    <cloc_version>%s</cloc_version>\n", RLOC_VERSION);
     printf("    <elapsed_seconds>%.3f</elapsed_seconds>\n", elapsed_sec);
     printf("    <n_files>%d</n_files>\n", n_valid);
     printf("    <n_lines>%d</n_lines>\n", total_blank + total_comment + total_code);
@@ -743,7 +744,7 @@ void output_xml_by_file(const FileStats* files, int n_files, double elapsed_sec)
     printf("<results>\n");
     printf("  <header>\n");
     printf("    <cloc_url>github.com/rloc/rloc</cloc_url>\n");
-    printf("    <cloc_version>0.1.0</cloc_version>\n");
+    printf("    <cloc_version>%s</cloc_version>\n", RLOC_VERSION);
     printf("    <elapsed_seconds>%.3f</elapsed_seconds>\n", elapsed_sec);
     printf("    <n_files>%d</n_files>\n", n_valid);
     printf("    <files_per_second>%.1f</files_per_second>\n", files_per_sec);
@@ -795,7 +796,7 @@ void output_html(const FileStats* files, int n_files, double elapsed_sec) {
     printf("</style>\n");
     printf("</head>\n");
     printf("<body>\n");
-    printf("<h1>rloc Report v0.1.0</h1>\n");
+    printf("<h1>rloc Report v%s</h1>\n", RLOC_VERSION);
     printf("<p>Processed %d files in %.2f seconds (%.1f files/s)</p>\n", n_valid, elapsed_sec, files_per_sec);
     printf("<table>\n");
     printf("<tr><th class=\"lang\">Language</th><th>files</th><th>blank</th><th>comment</th><th>code</th></tr>\n");
@@ -842,7 +843,7 @@ void output_html_by_file(const FileStats* files, int n_files, double elapsed_sec
     printf("</style>\n");
     printf("</head>\n");
     printf("<body>\n");
-    printf("<h1>rloc Report v0.1.0</h1>\n");
+    printf("<h1>rloc Report v%s</h1>\n", RLOC_VERSION);
     printf("<p>Processed %d files in %.2f seconds (%.1f files/s)</p>\n", n_valid, elapsed_sec, files_per_sec);
     printf("<table>\n");
     printf("<tr><th class=\"file\">File</th><th class=\"lang\">Language</th><th>blank</th><th>comment</th><th>code</th></tr>\n");

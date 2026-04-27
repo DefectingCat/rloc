@@ -1,5 +1,7 @@
 #include "cli.h"
 #include "diff.h"
+#include "version.h"
+#include "lang_defs.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -816,7 +818,7 @@ void cli_print_help(const char* prog_name) {
 }
 
 void cli_print_version(void) {
-    printf("rloc 0.1.0 (24 languages, built on %s %s)\n", __DATE__, __TIME__);
+    printf("rloc %s (%d languages, built on %s %s)\n", RLOC_VERSION, NUM_LANGUAGES, __DATE__, __TIME__);
 }
 
 /* Pre-scan argv for --config= and --no-config only.
