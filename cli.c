@@ -85,6 +85,9 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
     args->sql_file = saved_sql_file;
     args->report_file = saved_report_file;
 
+    // Set default VCS mode to auto-detect
+    args->vcs = VCS_AUTO;
+
     // Allocate initial array for input files
     int capacity = 16;
     args->input_files = malloc(capacity * sizeof(char*));
@@ -185,6 +188,8 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
         } else if (strcmp(argv[i], "--ignore-whitespace") == 0) {
             args->ignore_whitespace = 1;
             args->diff_flags |= DIFF_IGNORE_WHITESPACE;
+        } else if (strcmp(argv[i], "--no-vcs") == 0) {
+            args->vcs = VCS_NONE;
         } else if (strncmp(argv[i], "--vcs=", 6) == 0) {
             const char* vcs_value = argv[i] + 6;
             if (strcmp(vcs_value, "git") == 0) {
@@ -766,7 +771,8 @@ void cli_print_help(const char* prog_name) {
     printf("  --by-file           Report statistics for each file\n");
     printf("  --by-file-by-lang   Report by file and language\n");
     printf("  --report-file=FILE  Write output to file instead of stdout\n");
-    printf("  --vcs=git|svn|auto  Use VCS to get file list (respects .gitignore)\n");
+    printf("  --vcs=git|svn|auto  Use VCS to get file list (default: auto)\n");
+    printf("  --no-vcs            Disable VCS auto-detection, use regular file scan\n");
     printf("  --diff=REF1..REF2[:mode]  Compare changes between git refs\n");
     printf("                            Modes: relative (default), all, align\n");
     printf("  --diff-alignment      Show alignment info for file pairs in diff\n");
