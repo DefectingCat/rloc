@@ -111,6 +111,99 @@ static const GenericFilter lua_filters[] = {
     {FILTER_REMOVE_BETWEEN, "--[[", "]]"},
 };
 
+static const GenericFilter scala_filters[] = {
+    {FILTER_REMOVE_INLINE, "//", NULL},
+    {FILTER_REMOVE_BETWEEN, "/*", "*/"},
+};
+
+static const GenericFilter dart_filters[] = {
+    {FILTER_REMOVE_INLINE, "//", NULL},
+    {FILTER_REMOVE_BETWEEN, "/*", "*/"},
+};
+
+static const GenericFilter objective_c_filters[] = {
+    {FILTER_REMOVE_INLINE, "//", NULL},
+    {FILTER_REMOVE_BETWEEN, "/*", "*/"},
+};
+
+static const GenericFilter r_filters[] = {
+    {FILTER_REMOVE_INLINE, "#", NULL},
+};
+
+static const GenericFilter haskell_filters[] = {
+    {FILTER_REMOVE_INLINE, "--", NULL},
+    {FILTER_REMOVE_BETWEEN, "{-", "-}"},
+};
+
+static const GenericFilter julia_filters[] = {
+    {FILTER_REMOVE_INLINE, "#", NULL},
+    {FILTER_REMOVE_BETWEEN, "#=", "=#"},
+};
+
+static const GenericFilter elixir_filters[] = {
+    {FILTER_REMOVE_INLINE, "#", NULL},
+};
+
+static const GenericFilter erlang_filters[] = {
+    {FILTER_REMOVE_INLINE, "%", NULL},
+};
+
+static const GenericFilter groovy_filters[] = {
+    {FILTER_REMOVE_INLINE, "//", NULL},
+    {FILTER_REMOVE_BETWEEN, "/*", "*/"},
+};
+
+static const GenericFilter clojure_filters[] = {
+    {FILTER_REMOVE_INLINE, ";", NULL},
+};
+
+static const GenericFilter fsharp_filters[] = {
+    {FILTER_REMOVE_INLINE, "//", NULL},
+    {FILTER_REMOVE_BETWEEN, "(*", "*)"},
+};
+
+static const GenericFilter ocaml_filters[] = {
+    {FILTER_REMOVE_BETWEEN, "(*", "*)"},
+};
+
+static const GenericFilter fortran_filters[] = {
+    {FILTER_REMOVE_INLINE, "!", NULL},
+};
+
+static const GenericFilter pascal_filters[] = {
+    {FILTER_REMOVE_BETWEEN, "{", "}"},
+    {FILTER_REMOVE_BETWEEN, "(*", "*)"},
+};
+
+static const GenericFilter cobol_filters[] = {
+    {FILTER_REMOVE_INLINE, "*>", NULL},
+};
+
+static const GenericFilter ada_filters[] = {
+    {FILTER_REMOVE_INLINE, "--", NULL},
+};
+
+static const GenericFilter assembly_filters[] = {
+    {FILTER_REMOVE_INLINE, ";", NULL},
+};
+
+static const GenericFilter zig_filters[] = {
+    {FILTER_REMOVE_INLINE, "//", NULL},
+};
+
+static const GenericFilter nim_filters[] = {
+    {FILTER_REMOVE_INLINE, "#", NULL},
+    {FILTER_REMOVE_BETWEEN, "#[", "]#"},
+};
+
+static const GenericFilter crystal_filters[] = {
+    {FILTER_REMOVE_INLINE, "#", NULL},
+};
+
+static const GenericFilter v_filters[] = {
+    {FILTER_REMOVE_INLINE, "//", NULL},
+};
+
 /* Language definitions array */
 const Language g_languages[NUM_LANGUAGES] = {
     {.name = "Python",
@@ -408,6 +501,237 @@ const Language g_languages[NUM_LANGUAGES] = {
      .needs_content_check = false,
      .generic_filter_count = 2,
      .generic_filters = lua_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "Scala",
+     .extensions = "scala,sc",
+     .filenames = NULL,
+     .shebangs = "scala",
+     .content_patterns = "object ,class ,def ,trait ",
+     .needs_content_check = false,
+     .generic_filter_count = 2,
+     .generic_filters = scala_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "Dart",
+     .extensions = "dart",
+     .filenames = NULL,
+     .shebangs = NULL,
+     .content_patterns = "class ,void ,async,import ",
+     .needs_content_check = false,
+     .generic_filter_count = 2,
+     .generic_filters = dart_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "Objective-C",
+     .extensions = "m",
+     .filenames = NULL,
+     .shebangs = NULL,
+     .content_patterns = "@interface,@implementation,#import,NSObject",
+     .needs_content_check = false,
+     .generic_filter_count = 2,
+     .generic_filters = objective_c_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "R",
+     .extensions = "r,R",
+     .filenames = NULL,
+     .shebangs = "Rscript",
+     .content_patterns = "function<-library(,<-",
+     .needs_content_check = false,
+     .generic_filter_count = 1,
+     .generic_filters = r_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "Haskell",
+     .extensions = "hs,lhs",
+     .filenames = NULL,
+     .shebangs = "runhaskell",
+     .content_patterns = "module ,where,import ,data ",
+     .needs_content_check = false,
+     .generic_filter_count = 2,
+     .generic_filters = haskell_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "Julia",
+     .extensions = "jl",
+     .filenames = NULL,
+     .shebangs = "julia",
+     .content_patterns = "function ,end,using ,struct ",
+     .needs_content_check = false,
+     .generic_filter_count = 2,
+     .generic_filters = julia_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "Elixir",
+     .extensions = "ex,exs",
+     .filenames = NULL,
+     .shebangs = "elixir",
+     .content_patterns = "def ,defp,do,end",
+     .needs_content_check = false,
+     .generic_filter_count = 1,
+     .generic_filters = elixir_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "Erlang",
+     .extensions = "erl,hrl",
+     .filenames = NULL,
+     .shebangs = "escript",
+     .content_patterns = "-module,-export,-define,fun ",
+     .needs_content_check = false,
+     .generic_filter_count = 1,
+     .generic_filters = erlang_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "Groovy",
+     .extensions = "groovy",
+     .filenames = NULL,
+     .shebangs = "groovy",
+     .content_patterns = "class ,def ,void ,import ",
+     .needs_content_check = false,
+     .generic_filter_count = 2,
+     .generic_filters = groovy_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "Clojure",
+     .extensions = "clj,cljs,cljc",
+     .filenames = NULL,
+     .shebangs = NULL,
+     .content_patterns = "(defn ,(def ,(ns ,",
+     .needs_content_check = false,
+     .generic_filter_count = 1,
+     .generic_filters = clojure_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "F#",
+     .extensions = "fs,fsx",
+     .filenames = NULL,
+     .shebangs = NULL,
+     .content_patterns = "let ,type ,module ,namespace ",
+     .needs_content_check = false,
+     .generic_filter_count = 2,
+     .generic_filters = fsharp_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "OCaml",
+     .extensions = "ml,mli",
+     .filenames = NULL,
+     .shebangs = NULL,
+     .content_patterns = "let ,type ,module ,fun ",
+     .needs_content_check = false,
+     .generic_filter_count = 1,
+     .generic_filters = ocaml_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "Fortran",
+     .extensions = "f,f90,f95,f03",
+     .filenames = NULL,
+     .shebangs = NULL,
+     .content_patterns = "program ,subroutine,function,end",
+     .needs_content_check = false,
+     .generic_filter_count = 1,
+     .generic_filters = fortran_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "Pascal",
+     .extensions = "pas,pp,inc",
+     .filenames = NULL,
+     .shebangs = NULL,
+     .content_patterns = "program ,procedure,function,begin",
+     .needs_content_check = false,
+     .generic_filter_count = 2,
+     .generic_filters = pascal_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "COBOL",
+     .extensions = "cob,cbl,cpy",
+     .filenames = NULL,
+     .shebangs = NULL,
+     .content_patterns = "IDENTIFICATION,PROGRAM-ID,PROCEDURE,DATA DIVISION",
+     .needs_content_check = false,
+     .generic_filter_count = 1,
+     .generic_filters = cobol_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "Ada",
+     .extensions = "adb,ads",
+     .filenames = NULL,
+     .shebangs = NULL,
+     .content_patterns = "procedure ,function ,package ,is ",
+     .needs_content_check = false,
+     .generic_filter_count = 1,
+     .generic_filters = ada_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "Assembly",
+     .extensions = "asm,s,S",
+     .filenames = NULL,
+     .shebangs = NULL,
+     .content_patterns = "section ,global ,mov ,jmp ",
+     .needs_content_check = false,
+     .generic_filter_count = 1,
+     .generic_filters = assembly_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "Zig",
+     .extensions = "zig",
+     .filenames = NULL,
+     .shebangs = NULL,
+     .content_patterns = "fn ,pub ,const ,var ",
+     .needs_content_check = false,
+     .generic_filter_count = 1,
+     .generic_filters = zig_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "Nim",
+     .extensions = "nim",
+     .filenames = NULL,
+     .shebangs = "nim",
+     .content_patterns = "proc ,let ,var ,import ",
+     .needs_content_check = false,
+     .generic_filter_count = 2,
+     .generic_filters = nim_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "Crystal",
+     .extensions = "cr",
+     .filenames = NULL,
+     .shebangs = "crystal",
+     .content_patterns = "def ,class ,end,require ",
+     .needs_content_check = false,
+     .generic_filter_count = 1,
+     .generic_filters = crystal_filters,
+     .comment_hook = NULL,
+     .str_delimiters = "\"'",
+     .str_escape = "\\"},
+    {.name = "V",
+     .extensions = "v",
+     .filenames = NULL,
+     .shebangs = NULL,
+     .content_patterns = "fn ,pub ,struct ,module ",
+     .needs_content_check = false,
+     .generic_filter_count = 1,
+     .generic_filters = v_filters,
      .comment_hook = NULL,
      .str_delimiters = "\"'",
      .str_escape = "\\"}};
