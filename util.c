@@ -85,3 +85,97 @@ int is_binary_file(const char* path) {
 
     return 0;  // No null bytes, likely text
 }
+
+/* === Buffer Dynamic Buffer Implementation === */
+
+Buffer* buffer_new(size_t initial_capacity) {
+    if (initial_capacity == 0) {
+        initial_capacity = 1024;
+    }
+
+    Buffer* buf = malloc(sizeof(Buffer));
+    if (!buf) {
+        return NULL;
+    }
+
+    buf->data = malloc(initial_capacity);
+    if (!buf->data) {
+        free(buf);
+        return NULL;
+    }
+
+    buf->size = 0;
+    buf->capacity = initial_capacity;
+    return buf;
+}
+
+int buffer_append(Buffer* buf, const char* data, size_t len) {
+    if (!buf || !data || len == 0) {
+        return -1;
+    }
+
+    size_t needed = buf->size + len + 1;
+    if (needed > buf->capacity) {
+        // Double capacity until it fits
+        size_t new_capacity = buf->capacity;
+        while (new_capacity < needed) {
+            new_capacity *= 2;
+        }
+        char* new_data = realloc(buf->data, new_capacity);
+        if (!new_data) {
+            return -1;
+        }
+        buf->data = new_data;
+        buf->capacity = new_capacity;
+    }
+
+    memcpy(buf->data + buf->size, data, len);
+    buf->size += len;
+    buf->data[buf->size] = '\0';
+    return 0;
+}
+
+void buffer_free(Buffer* buf) {
+    if (!buf) return;
+    free(buf->data);
+    free(buf);
+}
+
+char* buffer_steal(Buffer* buf, size_t* out_size) {
+    if (!buf) {
+        if (out_size) *out_size = 0;
+        return NULL;
+    }
+
+    char* data = buf->data;
+    size_t size = buf->size;
+
+    buf->data = NULL;
+    buf->size = 0;
+    buf->capacity = 0;
+    free(buf);
+
+    if (out_size) *out_size = size;
+    return data;
+}
+
+void buffer_clear(Buffer* buf) {
+    if (!buf) return;
+    buf->size = 0;
+    if (buf->data) {
+        buf->data[0] = '\0';
+    }
+}
+
+int buffer_reserve(Buffer* buf, size_t min_capacity) {
+    if (!buf) return -1;
+    if (min_capacity <= buf->capacity) return 0;
+
+    char* new_data = realloc(buf->data, min_capacity);
+    if (!new_data) {
+        return -1;
+    }
+    buf->data = new_data;
+    buf->capacity = min_capacity;
+    return 0;
+}

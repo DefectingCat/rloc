@@ -385,6 +385,197 @@ void output_diff(const DiffFileStats* files, int n_files, const char* commit1, c
     }
 }
 
+/* Helper: Escape a string for JSON output */
+static void json_write_string(FILE* fp, const char* str) {
+    fputc('"', fp);
+    for (const char* p = str; *p; p++) {
+        switch (*p) {
+            case '"':  fputs("\\\"", fp); break;
+            case '\\': fputs("\\\\", fp); break;
+            case '\b': fputs("\\b", fp);  break;
+            case '\f': fputs("\\f", fp);  break;
+            case '\n': fputs("\\n", fp);  break;
+            case '\r': fputs("\\r", fp);  break;
+            case '\t': fputs("\\t", fp);  break;
+            default:   fputc(*p, fp);     break;
+        }
+    }
+    fputc('"', fp);
+}
+
+/* Output file alignment table (cloc --diff-alignment compatible) */
+void output_alignment(const AlignmentEntry* entries, int n_entries,
+                      const char* ref1, const char* ref2, int json_output) {
+    if (json_output) {
+        output_alignment_json(entries, n_entries, ref1, ref2);
+        return;
+    }
+
+    /* Count totals and categories */
+    int total_added = 0, total_removed = 0;
+    int n_added = 0, n_removed = 0, n_modified = 0, n_identical = 0;
+
+    for (int i = 0; i < n_entries; i++) {
+        total_added += entries[i].added;
+        total_removed += entries[i].removed;
+        switch (entries[i].type) {
+            case ALIGN_ADDED:    n_added++;    break;
+            case ALIGN_REMOVED:  n_removed++;  break;
+            case ALIGN_MODIFIED: n_modified++; break;
+            case ALIGN_IDENTICAL: n_identical++; break;
+        }
+    }
+
+    int n_files_changed = n_added + n_removed + n_modified;
+
+    printf("Comparing %s..%s\n\n", ref1, ref2);
+    printf("%d file%s, %d lines added, %d lines removed\n",
+           n_files_changed, n_files_changed != 1 ? "s" : "",
+           total_added, total_removed);
+    if (n_added > 0)   printf("  %d new\n", n_added);
+    if (n_removed > 0) printf("  %d removed\n", n_removed);
+    if (n_modified > 0) printf("  %d modified\n", n_modified);
+    if (n_identical > 0) printf("  %d identical\n", n_identical);
+    printf("\n");
+
+    /* Determine max file path width for alignment */
+    int max_path_len = 10;  /* minimum width */
+    for (int i = 0; i < n_entries; i++) {
+        int len = (int)strlen(entries[i].filepath);
+        if (len > max_path_len) max_path_len = len;
+    }
+    if (max_path_len > 50) max_path_len = 50;  /* cap to keep line reasonable */
+
+    int path_width = max_path_len + 2;
+
+    /* Print header */
+    printf("%-*s %10s %10s  %s\n", path_width, "File", "Added", "Removed", "Language");
+    for (int i = 0; i < path_width + 24; i++) fputc('-', stdout);
+    fputc('\n', stdout);
+
+    /* Print entries: added, removed, modified, then identical */
+    int has_added_header = 0, has_removed_header = 0, has_modified_header = 0;
+
+    /* Added files */
+    for (int i = 0; i < n_entries; i++) {
+        if (entries[i].type != ALIGN_ADDED) continue;
+        if (!has_added_header) {
+            printf("--- new files\n");
+            has_added_header = 1;
+        }
+        const char* lang = entries[i].language ? entries[i].language : "(none)";
+        printf("%-*s %10d %10d  %s\n", path_width,
+               entries[i].filepath, entries[i].added, entries[i].removed, lang);
+    }
+
+    /* Removed files */
+    for (int i = 0; i < n_entries; i++) {
+        if (entries[i].type != ALIGN_REMOVED) continue;
+        if (!has_removed_header) {
+            printf("--- removed files\n");
+            has_removed_header = 1;
+        }
+        const char* lang = entries[i].language ? entries[i].language : "(none)";
+        printf("%-*s %10d %10d  %s\n", path_width,
+               entries[i].filepath, entries[i].added, entries[i].removed, lang);
+    }
+
+    /* Modified files */
+    for (int i = 0; i < n_entries; i++) {
+        if (entries[i].type != ALIGN_MODIFIED) continue;
+        if (!has_modified_header) {
+            printf("--- modified files\n");
+            has_modified_header = 1;
+        }
+        const char* lang = entries[i].language ? entries[i].language : "(none)";
+        printf("%-*s %10d %10d  %s\n", path_width,
+               entries[i].filepath, entries[i].added, entries[i].removed, lang);
+    }
+
+    /* Identical files (only if --identical was set) */
+    if (n_identical > 0) {
+        printf("--- identical\n");
+        for (int i = 0; i < n_entries; i++) {
+            if (entries[i].type != ALIGN_IDENTICAL) continue;
+            printf("%-*s %10d %10d  %s\n", path_width,
+                   entries[i].filepath, entries[i].added, entries[i].removed,
+                   entries[i].language ? entries[i].language : "(identical)");
+        }
+    }
+
+    for (int i = 0; i < path_width + 24; i++) fputc('-', stdout);
+    fputc('\n', stdout);
+    printf("SUM: %d files, %d lines added, %d lines removed\n",
+           n_files_changed, total_added, total_removed);
+}
+
+/* Output file alignment table in JSON format */
+void output_alignment_json(const AlignmentEntry* entries, int n_entries,
+                           const char* ref1, const char* ref2) {
+    int total_added = 0, total_removed = 0;
+    int n_added = 0, n_removed = 0, n_modified = 0, n_identical = 0;
+
+    for (int i = 0; i < n_entries; i++) {
+        total_added += entries[i].added;
+        total_removed += entries[i].removed;
+        switch (entries[i].type) {
+            case ALIGN_ADDED:    n_added++;    break;
+            case ALIGN_REMOVED:  n_removed++;  break;
+            case ALIGN_MODIFIED: n_modified++; break;
+            case ALIGN_IDENTICAL: n_identical++; break;
+        }
+    }
+
+    printf("{\n");
+    printf("  \"header\" : {\n");
+    printf("    \"cloc_url\"           : \"github.com/rloc/rloc\",\n");
+    printf("    \"cloc_version\"       : \"0.1.0\",\n");
+    printf("    \"diff\"               : \"%s..%s\",\n", ref1, ref2);
+    printf("    \"n_files\"            : %d,\n", n_added + n_removed + n_modified);
+    printf("    \"n_added\"            : %d,\n", n_added);
+    printf("    \"n_removed\"          : %d,\n", n_removed);
+    printf("    \"n_modified\"         : %d,\n", n_modified);
+    printf("    \"n_identical\"        : %d,\n", n_identical);
+    printf("    \"total_added\"        : %d,\n", total_added);
+    printf("    \"total_removed\"      : %d\n", total_removed);
+    printf("  },\n");
+    printf("  \"files\" : [\n");
+
+    int first = 1;
+    for (int i = 0; i < n_entries; i++) {
+        if (!first) printf(",\n");
+        first = 0;
+
+        const char* type_str;
+        switch (entries[i].type) {
+            case ALIGN_ADDED:    type_str = "added";    break;
+            case ALIGN_REMOVED:  type_str = "removed";  break;
+            case ALIGN_MODIFIED: type_str = "modified"; break;
+            case ALIGN_IDENTICAL: type_str = "identical"; break;
+            default:             type_str = "unknown";  break;
+        }
+
+        const char* lang = entries[i].language
+            ? entries[i].language
+            : (entries[i].type == ALIGN_IDENTICAL ? "(identical)" : "(none)");
+
+        printf("    {\n");
+        printf("      \"name\"    : ");
+        json_write_string(stdout, entries[i].filepath);
+        printf(",\n");
+        printf("      \"type\"    : \"%s\",\n", type_str);
+        printf("      \"added\"   : %d,\n", entries[i].added);
+        printf("      \"removed\" : %d,\n", entries[i].removed);
+        printf("      \"language\": ");
+        json_write_string(stdout, lang);
+        printf("\n");
+        printf("    }");
+    }
+
+    printf("\n  ]\n");
+    printf("}\n");
+}
+
 /* Output YAML format */
 void output_yaml(const FileStats* files, int n_files, double elapsed_sec) {
     LanguageStats lang_stats[MAX_LANGUAGES];

@@ -16,6 +16,16 @@ static void free_test_files(DiffFileStats* files, int n_files) {
     }
 }
 
+// Helper to create a DiffConfig for testing
+static DiffConfig make_config(const char* repo, const char* ref1, const char* ref2, unsigned int flags) {
+    DiffConfig cfg;
+    cfg.ref1 = ref1;
+    cfg.ref2 = ref2;
+    cfg.flags = flags;
+    cfg.repo_path = repo;
+    return cfg;
+}
+
 // Test diff_get_files returns NULL for invalid repo path
 TEST(test_invalid_repo_path) {
     int n_files = 0;
@@ -27,8 +37,6 @@ TEST(test_invalid_repo_path) {
 // Test diff_get_files returns NULL for same commit
 TEST(test_same_commit) {
     int n_files = 0;
-    // Using a valid repo path but same commit should return no changes
-    // This test may fail if tests directory is not a git repo
     DiffFileStats* result = diff_get_files("/Volumes/SN/Developer/rloc", "HEAD", "HEAD", &n_files);
     // Same commit should return NULL or empty result
     if (result != NULL) {
@@ -65,22 +73,121 @@ TEST(test_free_valid_files) {
 // Test diff_get_files with valid repo and different commits
 TEST(test_valid_repo_diff) {
     int n_files = 0;
-    // This will test against the actual rloc repo
-    // If there are no differences between HEAD and HEAD~1, it may return NULL
     DiffFileStats* result = diff_get_files("/Volumes/SN/Developer/rloc", "HEAD", "HEAD", &n_files);
 
     // At minimum, verify the function doesn't crash
-    // The actual result depends on repo state
     if (result != NULL) {
-        // If we got results, verify they look valid
         if (n_files > 0) {
             ASSERT_TRUE(n_files <= 1000);  // Reasonable upper bound
-            // Check that file paths are valid strings
             for (int i = 0; i < n_files; i++) {
                 ASSERT_TRUE(result[i].filepath != NULL);
                 ASSERT_TRUE(strlen(result[i].filepath) > 0);
-                // added/removed can be 0 for deleted/added files
             }
+        }
+        free_test_files(result, n_files);
+    }
+}
+
+// Test diff_get_stats_extended with NULL config
+TEST(test_extended_null_config) {
+    int n_files = 0;
+    DiffFileStats* result = diff_get_stats_extended(NULL, &n_files);
+    ASSERT_TRUE(result == NULL);
+    ASSERT_EQ(n_files, 0);
+}
+
+// Test diff_get_stats_extended with DIFF_MODE_RELATIVE
+TEST(test_extended_relative_mode) {
+    int n_files = 0;
+    DiffConfig cfg = make_config("/Volumes/SN/Developer/rloc", "HEAD", "HEAD", DIFF_MODE_RELATIVE);
+    DiffFileStats* result = diff_get_stats_extended(&cfg, &n_files);
+    // Same ref should return NULL (early exit)
+    ASSERT_TRUE(result == NULL);
+    ASSERT_EQ(n_files, 0);
+}
+
+// Test diff_get_stats_extended with DIFF_MODE_ALL and same refs
+TEST(test_extended_all_mode_same_ref) {
+    int n_files = 0;
+    DiffConfig cfg = make_config("/Volumes/SN/Developer/rloc", "HEAD", "HEAD", DIFF_MODE_ALL);
+    DiffFileStats* result = diff_get_stats_extended(&cfg, &n_files);
+    // Same ref should return NULL (early exit)
+    ASSERT_TRUE(result == NULL);
+    ASSERT_EQ(n_files, 0);
+}
+
+// Test diff_free_config with NULL
+TEST(test_free_null_config) {
+    diff_free_config(NULL);
+}
+
+// Test diff_free_config frees owned strings
+TEST(test_free_config_owned_strings) {
+    DiffConfig cfg;
+    cfg.ref1 = strdup("abc123");
+    cfg.ref2 = strdup("def456");
+    cfg.repo_path = strdup("/some/path");
+    cfg.flags = DIFF_MODE_RELATIVE;
+
+    diff_free_config(&cfg);
+
+    ASSERT_TRUE(cfg.ref1 == NULL);
+    ASSERT_TRUE(cfg.ref2 == NULL);
+    ASSERT_TRUE(cfg.repo_path == NULL);
+    ASSERT_EQ(cfg.flags, 0);
+}
+
+// Test diff_get_stats_extended with DIFF_IGNORE_WHITESPACE
+TEST(test_extended_ignore_whitespace) {
+    int n_files = 0;
+    DiffConfig cfg = make_config("/Volumes/SN/Developer/rloc", "HEAD", "HEAD",
+                                 DIFF_MODE_RELATIVE | DIFF_IGNORE_WHITESPACE);
+    DiffFileStats* result = diff_get_stats_extended(&cfg, &n_files);
+    // Same ref - early exit
+    ASSERT_TRUE(result == NULL);
+}
+
+// Test diff_get_stats_extended with DIFF_MODE_RELATIVE between actual different commits
+TEST(test_extended_relative_different_commits) {
+    int n_files = 0;
+    DiffConfig cfg = make_config("/Volumes/SN/Developer/rloc", "HEAD~1", "HEAD", DIFF_MODE_RELATIVE);
+    DiffFileStats* result = diff_get_stats_extended(&cfg, &n_files);
+
+    // Function should not crash, may return results or NULL depending on repo state
+    if (result != NULL) {
+        if (n_files > 0) {
+            ASSERT_TRUE(n_files <= 1000);
+            for (int i = 0; i < n_files; i++) {
+                ASSERT_TRUE(result[i].filepath != NULL);
+                // Verify at least one of added/removed is non-zero for changed files
+                ASSERT_TRUE(result[i].added > 0 || result[i].removed > 0);
+            }
+        }
+        free_test_files(result, n_files);
+    }
+}
+
+// Test diff_get_stats_extended with DIFF_MODE_ALL between actual different commits
+TEST(test_extended_all_mode_different_commits) {
+    int n_files = 0;
+    DiffConfig cfg = make_config("/Volumes/SN/Developer/rloc", "HEAD~1", "HEAD", DIFF_MODE_ALL);
+    DiffFileStats* result = diff_get_stats_extended(&cfg, &n_files);
+
+    // Function should not crash
+    if (result != NULL) {
+        if (n_files > 0) {
+            ASSERT_TRUE(n_files <= 10000);
+            // Check all filepaths are valid
+            int has_changes = 0;
+            for (int i = 0; i < n_files; i++) {
+                ASSERT_TRUE(result[i].filepath != NULL);
+                ASSERT_TRUE(strlen(result[i].filepath) > 0);
+                if (result[i].added > 0 || result[i].removed > 0) {
+                    has_changes = 1;
+                }
+            }
+            // At least some files should have changes between different commits
+            ASSERT_TRUE(has_changes == 1);
         }
         free_test_files(result, n_files);
     }
@@ -92,6 +199,14 @@ int main(void) {
     register_test("free_null_files", test_func_test_free_null_files);
     register_test("free_valid_files", test_func_test_free_valid_files);
     register_test("valid_repo_diff", test_func_test_valid_repo_diff);
+    register_test("extended_null_config", test_func_test_extended_null_config);
+    register_test("extended_relative_mode", test_func_test_extended_relative_mode);
+    register_test("extended_all_mode_same_ref", test_func_test_extended_all_mode_same_ref);
+    register_test("free_null_config", test_func_test_free_null_config);
+    register_test("free_config_owned_strings", test_func_test_free_config_owned_strings);
+    register_test("extended_ignore_whitespace", test_func_test_extended_ignore_whitespace);
+    register_test("extended_relative_different_commits", test_func_test_extended_relative_different_commits);
+    register_test("extended_all_mode_different_commits", test_func_test_extended_all_mode_different_commits);
     run_all_tests();
     return tests_passed == test_count ? 0 : 1;
 }

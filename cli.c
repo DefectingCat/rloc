@@ -1,4 +1,5 @@
 #include "cli.h"
+#include "diff.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -137,19 +138,53 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
             // Look for .. separator
             const char* sep = strstr(diff_value, "..");
             if (sep != NULL) {
-                // Range format: commit1..commit2
                 size_t len1 = sep - diff_value;
                 args->diff_commit1 = malloc(len1 + 1);
                 if (args->diff_commit1) {
                     memcpy(args->diff_commit1, diff_value, len1);
                     args->diff_commit1[len1] = '\0';
                 }
-                args->diff_commit2 = strdup(sep + 2);
+                // Check for :mode suffix after ..
+                const char* colon = strchr(sep + 2, ':');
+                if (colon) {
+                    size_t len2 = colon - (sep + 2);
+                    args->diff_commit2 = malloc(len2 + 1);
+                    if (args->diff_commit2) {
+                        memcpy(args->diff_commit2, sep + 2, len2);
+                        args->diff_commit2[len2] = '\0';
+                    }
+                    // Parse mode flags after colon
+                    const char* mode_str = colon + 1;
+                    args->diff_flags |= DIFF_MODE_RELATIVE; // default for new format
+                    if (strcmp(mode_str, "all") == 0) {
+                        args->diff_flags = DIFF_MODE_ALL;
+                    } else if (strcmp(mode_str, "align") == 0) {
+                        args->diff_flags = DIFF_MODE_RELATIVE | DIFF_SHOW_ALIGNMENT;
+                    } else if (strcmp(mode_str, "relative") == 0) {
+                        args->diff_flags = DIFF_MODE_RELATIVE;
+                    }
+                } else {
+                    args->diff_commit2 = strdup(sep + 2);
+                    args->diff_flags |= DIFF_MODE_RELATIVE;
+                }
+                // Store raw refs for new API
+                args->diff_refs = strdup(diff_value);
             } else {
                 // Single commit: compare against HEAD
                 args->diff_commit1 = strdup(diff_value);
                 args->diff_commit2 = strdup("HEAD");
+                args->diff_flags |= DIFF_MODE_RELATIVE;
+                args->diff_refs = strdup(diff_value);
             }
+        } else if (strcmp(argv[i], "--diff-alignment") == 0) {
+            args->diff_alignment = 1;
+            args->diff_flags |= DIFF_SHOW_ALIGNMENT;
+        } else if (strcmp(argv[i], "--include-submodules") == 0) {
+            args->include_submodules = 1;
+            args->diff_flags |= DIFF_INCLUDE_SUBMODULES;
+        } else if (strcmp(argv[i], "--ignore-whitespace") == 0) {
+            args->ignore_whitespace = 1;
+            args->diff_flags |= DIFF_IGNORE_WHITESPACE;
         } else if (strncmp(argv[i], "--vcs=", 6) == 0) {
             const char* vcs_value = argv[i] + 6;
             if (strcmp(vcs_value, "git") == 0) {
@@ -609,6 +644,10 @@ void cli_free(CliArgs* args) {
         free(args->diff_commit2);
         args->diff_commit2 = NULL;
     }
+    if (args->diff_refs) {
+        free(args->diff_refs);
+        args->diff_refs = NULL;
+    }
     if (args->exclude_list_file) {
         free(args->exclude_list_file);
         args->exclude_list_file = NULL;
@@ -728,7 +767,11 @@ void cli_print_help(const char* prog_name) {
     printf("  --by-file-by-lang   Report by file and language\n");
     printf("  --report-file=FILE  Write output to file instead of stdout\n");
     printf("  --vcs=git|svn|auto  Use VCS to get file list (respects .gitignore)\n");
-    printf("  --diff=COMMIT..COMMIT Compare changes between commits (git diff)\n");
+    printf("  --diff=REF1..REF2[:mode]  Compare changes between git refs\n");
+    printf("                            Modes: relative (default), all, align\n");
+    printf("  --diff-alignment      Show alignment info for file pairs in diff\n");
+    printf("  --include-submodules  Include submodule changes in diff\n");
+    printf("  --ignore-whitespace   Ignore whitespace differences in diff\n");
     printf("  --quiet             Suppress warning messages\n");
     printf("  --max-temp-size=MB  Limit temp space usage in MB (default: 1024)\n");
     printf("  --sdir=DIR          Use specified directory for temp files\n");

@@ -160,18 +160,63 @@ int main(int argc, char** argv) {
     }
     temp_manager_install_handlers(&temp_mgr);
 
-    if (args.diff_commit1 != NULL && args.diff_commit2 != NULL) {
+    // Unified diff handling using new diff_get_stats_extended API
+    if (args.diff_refs != NULL || (args.diff_commit1 != NULL && args.diff_commit2 != NULL)) {
         const char* repo_path = (args.n_input_files > 0) ? args.input_files[0] : ".";
         if (!is_directory(repo_path)) repo_path = ".";
+
+        DiffConfig diff_cfg;
+        memset(&diff_cfg, 0, sizeof(diff_cfg));
+        diff_cfg.repo_path = repo_path;
+
+        // Use new unified fields if available, otherwise fall back to legacy fields
+        if (args.diff_refs != NULL) {
+            diff_cfg.ref1 = args.diff_commit1;
+            diff_cfg.ref2 = args.diff_commit2;
+            diff_cfg.flags = args.diff_flags;
+        } else {
+            // Legacy --diff format without mode
+            diff_cfg.ref1 = args.diff_commit1;
+            diff_cfg.ref2 = args.diff_commit2;
+            diff_cfg.flags = DIFF_MODE_RELATIVE;
+        }
+
         int n_diff_files = 0;
-        DiffFileStats* diff_files = diff_get_files(repo_path, args.diff_commit1, args.diff_commit2, &n_diff_files);
+        DiffFileStats* diff_files = diff_get_stats_extended(&diff_cfg, &n_diff_files);
+
         if (!diff_files || n_diff_files == 0) {
-            printf("No changes between %s and %s\n", args.diff_commit1, args.diff_commit2);
+            printf("No changes between %s and %s\n", diff_cfg.ref1, diff_cfg.ref2);
+            diff_free_config(&diff_cfg);
             cli_free(&args);
             return 0;
         }
-        output_diff(diff_files, n_diff_files, args.diff_commit1, args.diff_commit2, args.by_file);
+
+        // Output based on mode flags
+        if (diff_cfg.flags & DIFF_SHOW_ALIGNMENT) {
+            // Build alignment entries from diff stats
+            AlignmentEntry* entries = malloc(n_diff_files * sizeof(AlignmentEntry));
+            if (entries) {
+                for (int i = 0; i < n_diff_files; i++) {
+                    entries[i].filepath = diff_files[i].filepath;
+                    entries[i].type = (diff_files[i].added > 0 && diff_files[i].removed == 0)
+                                      ? ALIGN_ADDED
+                                      : (diff_files[i].removed > 0 && diff_files[i].added == 0)
+                                        ? ALIGN_REMOVED
+                                        : ALIGN_MODIFIED;
+                    entries[i].added = diff_files[i].added;
+                    entries[i].removed = diff_files[i].removed;
+                    entries[i].language = diff_files[i].lang ? diff_files[i].lang : "(unknown)";
+                }
+                int json_output = (args.output_format == FORMAT_JSON);
+                output_alignment(entries, n_diff_files, diff_cfg.ref1, diff_cfg.ref2, json_output);
+                free(entries);
+            }
+        } else {
+            output_diff(diff_files, n_diff_files, diff_cfg.ref1, diff_cfg.ref2, args.by_file);
+        }
+
         diff_free_files(diff_files, n_diff_files);
+        diff_free_config(&diff_cfg);
         cli_free(&args);
         return 0;
     }

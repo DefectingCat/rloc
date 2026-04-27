@@ -59,6 +59,19 @@ char** vcs_get_files_at_commit(const char* repo_path, const char* commit, int* n
 char* vcs_get_file_at_commit(const char* repo_path, const char* commit,
                               const char* filepath, size_t* content_len);
 
+// Diff flags for vcs_get_changed_files
+#define VCS_DIFF_IGNORE_WHITESPACE  (0x01)
+#define VCS_DIFF_INCLUDE_SUBMODULES (0x02)
+
+// Get files changed between two references (commits, branches, etc.)
+// Returns array of changed file paths, sets n_files count
+// If flags includes VCS_DIFF_IGNORE_WHITESPACE, whitespace-only changes are ignored
+// If flags includes VCS_DIFF_INCLUDE_SUBMODULES, submodule changes are included
+// Returns NULL and sets n_files=0 on error or invalid references
+// Caller must free returned array with vcs_free_files()
+char** vcs_get_changed_files(const char* repo, const char* ref1, const char* ref2,
+                              unsigned int flags, int* n_files);
+
 // Get files changed between two commits
 // Returns array of changed file paths, sets n_files count
 // Each path is prefixed with status: 'A' (added), 'M' (modified), 'D' (deleted)

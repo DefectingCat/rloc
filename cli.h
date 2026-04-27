@@ -38,6 +38,13 @@ typedef struct {
     VcsType vcs;
     char* diff_commit1;
     char* diff_commit2;
+    // New unified diff fields (Phase 5)
+    char* diff_refs;       // Raw diff ref string (e.g. "HEAD~1..HEAD")
+    unsigned int diff_flags; // Combination of DIFF_MODE_* flags
+    // Standalone diff options
+    int diff_alignment;    // --diff-alignment: show alignment info
+    int include_submodules; // --include-submodules: include submodule changes
+    int ignore_whitespace; // --ignore-whitespace: ignore whitespace in diff
     char* exclude_list_file;
     char* match_pattern;
     char* not_match_pattern;
