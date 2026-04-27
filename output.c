@@ -131,7 +131,7 @@ void output_text(const FileStats* files, int n_files, double elapsed_sec) {
 
     // Print URL line
     printf(
-        "https://github.com/rloc/rloc v %s  T=%.2f s (%.1f files/s, %.1f "
+        "https://github.com/DefectingCat/rloc v %s  T=%.2f s (%.1f files/s, %.1f "
         "lines/s)\n",
         RLOC_VERSION, elapsed_sec, files_per_sec, lines_per_sec);
 
@@ -185,7 +185,7 @@ void output_text_by_file(const FileStats* files, int n_files, double elapsed_sec
     }
 
     double files_per_sec = (elapsed_sec > 0) ? (n_valid / elapsed_sec) : 0.0;
-    printf("https://github.com/rloc/rloc v %s  T=%.2f s (%.1f files/s)\n", RLOC_VERSION,
+    printf("https://github.com/DefectingCat/rloc v %s  T=%.2f s (%.1f files/s)\n", RLOC_VERSION,
            elapsed_sec, files_per_sec);
     printf("\n");
 
@@ -225,7 +225,7 @@ void output_json(const FileStats* files, int n_files, double elapsed_sec) {
 
     printf("{\n");
     printf("  \"header\" : {\n");
-    printf("    \"cloc_url\"           : \"github.com/rloc/rloc\",\n");
+    printf("    \"cloc_url\"           : \"github.com/DefectingCat/rloc\",\n");
     printf("    \"cloc_version\"       : \"%s\",\n", RLOC_VERSION);
     printf("    \"elapsed_seconds\"    : %.3f,\n", elapsed_sec);
     printf("    \"n_files\"            : %d,\n", n_valid);
@@ -261,7 +261,7 @@ void output_json_by_file(const FileStats* files, int n_files, double elapsed_sec
 
     printf("{\n");
     printf("  \"header\" : {\n");
-    printf("    \"cloc_url\"           : \"github.com/rloc/rloc\",\n");
+    printf("    \"cloc_url\"           : \"github.com/DefectingCat/rloc\",\n");
     printf("    \"cloc_version\"       : \"%s\",\n", RLOC_VERSION);
     printf("    \"elapsed_seconds\"    : %.3f,\n", elapsed_sec);
     printf("    \"n_files\"            : %d,\n", n_valid);
@@ -326,7 +326,7 @@ void output_md(const FileStats* files, int n_files, double elapsed_sec) {
     int n_valid = count_valid_files(files, n_files);
 
     double files_per_sec = (elapsed_sec > 0) ? (n_valid / elapsed_sec) : 0.0;
-    printf("cloc|github.com/rloc/rloc v %s  T=%.2f s (%.1f files/s)\n", RLOC_VERSION, elapsed_sec,
+    printf("cloc|github.com/DefectingCat/rloc v %s  T=%.2f s (%.1f files/s)\n", RLOC_VERSION, elapsed_sec,
            files_per_sec);
     printf("--- | ---\n\n");
 
@@ -351,7 +351,7 @@ void output_md_by_file(const FileStats* files, int n_files, double elapsed_sec) 
     int n_valid = count_valid_files(files, n_files);
 
     double files_per_sec = (elapsed_sec > 0) ? (n_valid / elapsed_sec) : 0.0;
-    printf("cloc|github.com/rloc/rloc v %s  T=%.2f s (%.1f files/s)\n", RLOC_VERSION, elapsed_sec,
+    printf("cloc|github.com/DefectingCat/rloc v %s  T=%.2f s (%.1f files/s)\n", RLOC_VERSION, elapsed_sec,
            files_per_sec);
     printf("--- | ---\n\n");
 
@@ -560,7 +560,7 @@ void output_alignment_json(const AlignmentEntry* entries, int n_entries, const c
 
     printf("{\n");
     printf("  \"header\" : {\n");
-    printf("    \"cloc_url\"           : \"github.com/rloc/rloc\",\n");
+    printf("    \"cloc_url\"           : \"github.com/DefectingCat/rloc\",\n");
     printf("    \"cloc_version\"       : \"%s\",\n", RLOC_VERSION);
     printf("    \"diff\"               : \"%s..%s\",\n", ref1, ref2);
     printf("    \"n_files\"            : %d,\n", n_added + n_removed + n_modified);
@@ -630,7 +630,7 @@ void output_yaml(const FileStats* files, int n_files, double elapsed_sec) {
 
     printf("---\n");
     printf("header:\n");
-    printf("  cloc_url: github.com/rloc/rloc\n");
+    printf("  cloc_url: github.com/DefectingCat/rloc\n");
     printf("  cloc_version: %s\n", RLOC_VERSION);
     printf("  elapsed_seconds: %.2f\n", elapsed_sec);
     printf("  n_files: %d\n", n_valid);
@@ -661,7 +661,7 @@ void output_yaml_by_file(const FileStats* files, int n_files, double elapsed_sec
 
     printf("---\n");
     printf("header:\n");
-    printf("  cloc_url: github.com/rloc/rloc\n");
+    printf("  cloc_url: github.com/DefectingCat/rloc\n");
     printf("  cloc_version: %s\n", RLOC_VERSION);
     printf("  elapsed_seconds: %.2f\n", elapsed_sec);
     printf("  n_files: %d\n", n_valid);
@@ -774,7 +774,7 @@ void output_xml(const FileStats* files, int n_files, double elapsed_sec) {
     printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     printf("<results>\n");
     printf("  <header>\n");
-    printf("    <cloc_url>github.com/rloc/rloc</cloc_url>\n");
+    printf("    <cloc_url>github.com/DefectingCat/rloc</cloc_url>\n");
     printf("    <cloc_version>%s</cloc_version>\n", RLOC_VERSION);
     printf("    <elapsed_seconds>%.3f</elapsed_seconds>\n", elapsed_sec);
     printf("    <n_files>%d</n_files>\n", n_valid);
@@ -816,7 +816,7 @@ void output_xml_by_file(const FileStats* files, int n_files, double elapsed_sec)
     printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     printf("<results>\n");
     printf("  <header>\n");
-    printf("    <cloc_url>github.com/rloc/rloc</cloc_url>\n");
+    printf("    <cloc_url>github.com/DefectingCat/rloc</cloc_url>\n");
     printf("    <cloc_version>%s</cloc_version>\n", RLOC_VERSION);
     printf("    <elapsed_seconds>%.3f</elapsed_seconds>\n", elapsed_sec);
     printf("    <n_files>%d</n_files>\n", n_valid);
