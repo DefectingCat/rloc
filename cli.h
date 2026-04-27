@@ -72,6 +72,7 @@ typedef struct {
     char* show_ext_arg;
     // Phase 2 fields
     int processes;          // Number of parallel workers (0 = auto)
+    int use_threads;        // Use threads instead of processes for parallel counting
     char* batch_input;      // Internal: worker file list input
     int batch_output_tsv;   // Internal: worker TSV output flag
     char* extract_with;     // Custom archive extraction command

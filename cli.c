@@ -51,6 +51,9 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
     // Initialize structure - reset everything
     memset(args, 0, sizeof(CliArgs));
 
+    // Default to threads mode (more efficient than fork+pipes)
+    args->use_threads = 1;
+
     /* Restore config-set values */
     args->n_exclude_dirs = saved_n_exclude_dirs;
     args->exclude_dirs = saved_exclude_dirs;
@@ -484,6 +487,10 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
             args->config_file = strdup(argv[i] + 9);
         } else if (strncmp(argv[i], "--processes=", 12) == 0) {
             args->processes = atoi(argv[i] + 12);
+        } else if (strcmp(argv[i], "--threads") == 0) {
+            args->use_threads = 1;
+        } else if (strcmp(argv[i], "--fork") == 0) {
+            args->use_threads = 0;  // Use fork+pipes instead of threads
         } else if (strncmp(argv[i], "--batch-input=", 14) == 0) {
             args->batch_input = strdup(argv[i] + 14);
         } else if (strcmp(argv[i], "--batch-output=tsv") == 0) {
@@ -896,7 +903,9 @@ void cli_print_help(const char* prog_name) {
     printf("  --skip-uniqueness   Skip duplicate file detection via MD5\n");
     printf("  --unique=FILE       Write unique (non-duplicate) file list to FILE\n");
     printf("  --ignored=FILE      Write ignored file list to FILE\n");
-    printf("  --processes=N       Use N parallel processes (0 = auto detect)\n");
+    printf("  --processes=N       Use N parallel workers (0 = auto detect)\n");
+    printf("  --threads           Use threads for parallel counting (default)\n");
+    printf("  --fork              Use fork+pipes for parallel counting (legacy)\n");
     printf("  --git=REF           Count files at git commit/branch/tag\n");
     printf("  --list-file=FILE    Read input file list from FILE (- for STDIN)\n");
     printf("  --force-lang=LANG   Force language for all files (or LANG,EXT for specific ext)\n");

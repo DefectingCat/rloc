@@ -18,6 +18,7 @@
 #include "output.h"
 #include "parallel.h"
 #include "temp_manager.h"
+#include "threaded_counter.h"
 #include "unique.h"
 #include "util.h"
 #include "vcs.h"
@@ -773,64 +774,125 @@ skip_normal_scan:;  // Empty statement before declaration (C11 compatibility)
 
         // Use parallel processing for large file counts with multiple workers
         if (n_workers > 1 && n_count_files >= 50) {
-            // Build array of file paths to count
-            const char** count_paths = malloc(n_count_files * sizeof(const char*));
-            if (!count_paths) {
-                fprintf(stderr, "Error: Memory allocation failed\n");
-                free(files);
-                filelist_free(&filelist);
-                filelist_free_exclude_patterns(&config);
-                temp_manager_destroy(&temp_mgr);
-                cli_free(&args);
-                return 1;
-            }
-
-            int idx = 0;
-            for (int i = 0; i < filelist.count; i++) {
-                if (files[i].lang != NULL) {
-                    count_paths[idx++] = files[i].filepath;
+            if (args.use_threads) {
+                // Thread mode - build input array with pre-detected languages
+                ThreadInputFile* thread_inputs = malloc(n_count_files * sizeof(ThreadInputFile));
+                if (!thread_inputs) {
+                    fprintf(stderr, "Error: Memory allocation failed\n");
+                    free(files);
+                    filelist_free(&filelist);
+                    filelist_free_exclude_patterns(&config);
+                    temp_manager_destroy(&temp_mgr);
+                    cli_free(&args);
+                    return 1;
                 }
-            }
 
-            ParallelConfig par_config;
-            par_config.n_workers = n_workers;
-            par_config.chunk_size = 100;
-            par_config.timeout_sec = 300;
-
-            ParallelResult* par_results = malloc(n_count_files * sizeof(ParallelResult));
-            if (!par_results) {
-                free(count_paths);
-                fprintf(stderr, "Error: Memory allocation failed\n");
-                free(files);
-                filelist_free(&filelist);
-                filelist_free_exclude_patterns(&config);
-                temp_manager_destroy(&temp_mgr);
-                cli_free(&args);
-                return 1;
-            }
-
-            int n_par_results = n_count_files;
-            int par_count = parallel_count_files(count_paths, n_count_files, &par_config,
-                                                 args.skip_leading_exts, args.n_skip_leading_exts,
-                                                 args.skip_leading, par_results, &n_par_results);
-
-            // Copy results back to files array
-            for (int i = 0; i < n_par_results; i++) {
-                // Find matching file entry
-                for (int j = 0; j < filelist.count; j++) {
-                    if (strcmp(files[j].filepath, par_results[i].filepath) == 0) {
-                        files[j].counts = par_results[i].counts;
-                        break;
+                int idx = 0;
+                for (int i = 0; i < filelist.count; i++) {
+                    if (files[i].lang != NULL) {
+                        thread_inputs[idx].filepath = files[i].filepath;
+                        thread_inputs[idx].lang = files[i].lang;
+                        idx++;
                     }
                 }
-            }
 
-            free(par_results);
-            free(count_paths);
+                ThreadConfig thread_config;
+                thread_default_config(&thread_config);
+                thread_config.n_threads = n_workers;
 
-            if (par_count < 0) {
-                fprintf(stderr,
-                        "Warning: Parallel processing failed, some files may not be counted\n");
+                FileStats* thread_results = malloc(n_count_files * sizeof(FileStats));
+                if (!thread_results) {
+                    free(thread_inputs);
+                    fprintf(stderr, "Error: Memory allocation failed\n");
+                    free(files);
+                    filelist_free(&filelist);
+                    filelist_free_exclude_patterns(&config);
+                    temp_manager_destroy(&temp_mgr);
+                    cli_free(&args);
+                    return 1;
+                }
+
+                int n_thread_results = n_count_files;
+                int thread_count = threaded_count_files(
+                    thread_inputs, n_count_files, &thread_config, args.skip_leading_exts,
+                    args.n_skip_leading_exts, args.skip_leading, thread_results, &n_thread_results);
+
+                // Copy results back to files array
+                for (int i = 0; i < n_thread_results; i++) {
+                    for (int j = 0; j < filelist.count; j++) {
+                        if (strcmp(files[j].filepath, thread_results[i].filepath) == 0) {
+                            files[j].counts = thread_results[i].counts;
+                            break;
+                        }
+                    }
+                }
+
+                free(thread_results);
+                free(thread_inputs);
+
+                if (thread_count < 0) {
+                    fprintf(stderr,
+                            "Warning: Thread processing failed, some files may not be counted\n");
+                }
+            } else {
+                // Process mode (fork + pipes) - build array of file paths
+                const char** count_paths = malloc(n_count_files * sizeof(const char*));
+                if (!count_paths) {
+                    fprintf(stderr, "Error: Memory allocation failed\n");
+                    free(files);
+                    filelist_free(&filelist);
+                    filelist_free_exclude_patterns(&config);
+                    temp_manager_destroy(&temp_mgr);
+                    cli_free(&args);
+                    return 1;
+                }
+
+                int idx = 0;
+                for (int i = 0; i < filelist.count; i++) {
+                    if (files[i].lang != NULL) {
+                        count_paths[idx++] = files[i].filepath;
+                    }
+                }
+
+                ParallelConfig par_config;
+                par_config.n_workers = n_workers;
+                par_config.chunk_size = 100;
+                par_config.timeout_sec = 300;
+
+                ParallelResult* par_results = malloc(n_count_files * sizeof(ParallelResult));
+                if (!par_results) {
+                    free(count_paths);
+                    fprintf(stderr, "Error: Memory allocation failed\n");
+                    free(files);
+                    filelist_free(&filelist);
+                    filelist_free_exclude_patterns(&config);
+                    temp_manager_destroy(&temp_mgr);
+                    cli_free(&args);
+                    return 1;
+                }
+
+                int n_par_results = n_count_files;
+                int par_count = parallel_count_files(
+                    count_paths, n_count_files, &par_config, args.skip_leading_exts,
+                    args.n_skip_leading_exts, args.skip_leading, par_results, &n_par_results);
+
+                // Copy results back to files array
+                for (int i = 0; i < n_par_results; i++) {
+                    for (int j = 0; j < filelist.count; j++) {
+                        if (strcmp(files[j].filepath, par_results[i].filepath) == 0) {
+                            files[j].counts = par_results[i].counts;
+                            break;
+                        }
+                    }
+                }
+
+                free(par_results);
+                free(count_paths);
+
+                if (par_count < 0) {
+                    fprintf(stderr,
+                            "Warning: Parallel processing failed, some files may not be counted\n");
+                }
             }
         } else {
             // Sequential counting (fallback for small file counts or single worker)
