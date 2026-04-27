@@ -29,6 +29,7 @@ typedef struct {
     const char* filenames;        /* Comma-separated exact filenames */
     const char* shebangs;         /* Comma-separated interpreter patterns */
     const char* content_patterns; /* Comma-separated content detection patterns */
+    bool needs_content_check;     /* Whether extension match requires content verification */
     size_t generic_filter_count;
     const GenericFilter* generic_filters;
     CommentHookFn comment_hook;

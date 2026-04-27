@@ -7,11 +7,38 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <strings.h>
 
 #include "util.h"
 
 #define INITIAL_CAPACITY 32
 #define PATTERN_CAPACITY 32
+
+/* Known source code extensions - these are always text files */
+static const char* text_extensions[] = {
+    "c", "h", "cpp", "cxx", "cc", "hpp", "hxx", "hh",
+    "py", "pyw", "js", "mjs", "ts", "tsx",
+    "java", "go", "rs", "rb", "php", "cs",
+    "swift", "kt", "kts", "sh", "bash", "zsh", "ksh",
+    "pl", "pm", "css", "html", "htm", "sql",
+    "xml", "yaml", "yml", "toml", "json", "md", "markdown",
+    "vue", "lua", "conf"
+};
+static const int n_text_extensions = sizeof(text_extensions) / sizeof(text_extensions[0]);
+
+/* Check if extension is a known text file extension */
+static bool is_known_text_extension(const char* filepath) {
+    const char* ext = strrchr(filepath, '.');
+    if (!ext || ext == filepath) return false;
+    ext++;  /* Skip the dot */
+
+    for (int i = 0; i < n_text_extensions; i++) {
+        if (strcasecmp(ext, text_extensions[i]) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
 
 static int filelist_add(FileList* list, const char* path) {
     if (list->count >= list->capacity) {
@@ -112,11 +139,16 @@ int filelist_scan(const char* path, const FilelistConfig* config, FileList* list
         return -1;
     }
 
-    if (is_regular_file(path)) {
+    FileInfo info;
+    if (get_file_info(path, &info) != 0) {
+        return -1;
+    }
+
+    if (info.is_regular) {
         return filelist_add(list, path);
     }
 
-    if (!is_directory(path)) {
+    if (!info.is_dir) {
         return -1;
     }
 
@@ -136,21 +168,53 @@ int filelist_scan(const char* path, const FilelistConfig* config, FileList* list
             continue;
         }
 
-        if (is_symlink(full_path) && is_directory(full_path)) {
-            // Skip symlink directories unless --follow-links is set
+        /* Use d_type when available to avoid stat calls */
+        unsigned char d_type = entry->d_type;
+        bool is_dir = false;
+        bool is_regular = false;
+        bool is_symlink = false;
+        bool need_stat = false;
+
+        if (d_type == DT_DIR) {
+            is_dir = true;
+        } else if (d_type == DT_REG) {
+            is_regular = true;
+        } else if (d_type == DT_LNK) {
+            is_symlink = true;
+            need_stat = true;  /* Need to check symlink target */
+        } else if (d_type == DT_UNKNOWN) {
+            need_stat = true;  /* FS doesn't support d_type, fallback to stat */
+        } else {
+            /* Other types (DT_BLK, DT_CHR, DT_FIFO, DT_SOCK) - skip */
+            free(full_path);
+            continue;
+        }
+
+        if (need_stat) {
+            if (get_file_info(full_path, &info) != 0) {
+                free(full_path);
+                continue;
+            }
+            is_symlink = info.is_symlink;
+            is_dir = info.is_dir;
+            is_regular = info.is_regular;
+        }
+
+        if (is_symlink && is_dir) {
+            /* Skip symlink directories unless --follow-links is set */
             if (!config || !config->follow_links) {
                 free(full_path);
                 continue;
             }
         }
 
-        if (is_directory(full_path)) {
+        if (is_dir) {
             if (is_excluded_dir(entry->d_name, config)) {
                 free(full_path);
                 continue;
             }
 
-            // Check against directory regex patterns
+            /* Check against directory regex patterns */
             if (config && config->match_d_pattern) {
                 if (!matches_regex(entry->d_name, config->match_d_pattern)) {
                     free(full_path);
@@ -172,31 +236,39 @@ int filelist_scan(const char* path, const FilelistConfig* config, FileList* list
 
             filelist_scan(full_path, config, list);
             free(full_path);
-        } else if (is_regular_file(full_path)) {
+        } else if (is_regular) {
             if (config && config->max_file_size > 0) {
-                long file_size = get_file_size(full_path);
+                long file_size;
+                if (need_stat) {
+                    file_size = info.size;
+                } else {
+                    file_size = get_file_size(full_path);
+                }
                 if (file_size > config->max_file_size) {
                     free(full_path);
                     continue;
                 }
             }
 
-            if (is_binary_file(full_path)) {
-                free(full_path);
-                continue;
+            /* Skip binary check for known source code extensions */
+            if (!is_known_text_extension(full_path)) {
+                if (is_binary_file(full_path)) {
+                    free(full_path);
+                    continue;
+                }
             }
 
-            // Check against exclude patterns from file
+            /* Check against exclude patterns from file */
             if (matches_exclude_pattern(full_path, config)) {
                 free(full_path);
                 continue;
             }
 
-            // Check against regex match pattern (--match-f)
+            /* Check against regex match pattern (--match-f) */
             if (config && config->match_pattern) {
                 const char* match_target = full_path;
                 if (!config->fullpath) {
-                    // Match against basename only
+                    /* Match against basename only */
                     const char* basename = strrchr(full_path, '/');
                     match_target = basename ? basename + 1 : full_path;
                 }
@@ -206,7 +278,7 @@ int filelist_scan(const char* path, const FilelistConfig* config, FileList* list
                 }
             }
 
-            // Check against regex not-match pattern (--not-match-f)
+            /* Check against regex not-match pattern (--not-match-f) */
             if (config && config->not_match_pattern) {
                 const char* match_target = full_path;
                 if (!config->fullpath) {

@@ -12,6 +12,8 @@ extern const Language g_languages[];
 
 /* Forward declaration */
 static const Language* detect_shebang_from_buffer(const char* buffer, size_t bytes_read);
+static const Language* detect_language_by_content_buffer(const char* buffer, size_t bytes_read);
+static bool match_content_patterns_for_lang(const char* buffer, const Language* lang);
 
 /* Helper: Check if a string ends with a specific extension */
 static bool has_extension(const char* filepath, const char* ext) {
@@ -101,26 +103,59 @@ static bool matches_filenames(const char* filepath, const char* filenames) {
 const Language* detect_language(const char* filepath) {
     if (!filepath) return NULL;
 
-    /* Try content detection first (highest priority) */
-    const Language* content_lang = detect_language_by_content(filepath);
-    if (content_lang) return content_lang;
-
+    /* 1. Try extension/filename match first (zero I/O) */
+    const Language* ext_lang = NULL;
     for (size_t i = 0; i < NUM_LANGUAGES; i++) {
         const Language* lang = &g_languages[i];
 
         /* Try exact filename match */
         if (matches_filenames(filepath, lang->filenames)) {
-            return lang;
+            ext_lang = lang;
+            break;
         }
 
         /* Then try extension match */
         if (matches_extensions(filepath, lang->extensions)) {
-            return lang;
+            ext_lang = lang;
+            break;
         }
     }
 
-    /* Fallback to shebang detection */
-    return detect_language_by_shebang(filepath);
+    /* 2. If extension matched and doesn't need content check, return immediately */
+    if (ext_lang && !ext_lang->needs_content_check && !ext_lang->content_patterns) {
+        return ext_lang;
+    }
+
+    /* 3. Single file read for content/shebang detection */
+    FILE* fp = fopen(filepath, "r");
+    if (!fp) {
+        /* Can't read file, return extension match if available */
+        return ext_lang;
+    }
+
+    /* Read enough for both content (512) and shebang (256) detection */
+    char buffer[1024];
+    size_t bytes_read = fread(buffer, 1, sizeof(buffer) - 1, fp);
+    buffer[bytes_read] = '\0';
+    fclose(fp);
+
+    /* 4. Try content detection from buffer */
+    const Language* content_lang = detect_language_by_content_buffer(buffer, bytes_read);
+    if (content_lang) return content_lang;
+
+    /* 5. If extension matched, verify with content patterns if needed */
+    if (ext_lang && ext_lang->content_patterns) {
+        if (match_content_patterns_for_lang(buffer, ext_lang)) {
+            return ext_lang;
+        }
+        /* Content patterns didn't match, don't return this language */
+    }
+
+    /* 6. If extension matched without content requirement, return it */
+    if (ext_lang) return ext_lang;
+
+    /* 7. Fallback to shebang detection from buffer */
+    return detect_shebang_from_buffer(buffer, bytes_read);
 }
 
 /* Detect language by reading the file's shebang */
@@ -194,6 +229,50 @@ const Language* detect_shebang_from_buffer(const char* buffer, size_t bytes_read
     }
 
     return NULL;
+}
+
+/* Detect language by content patterns from buffer */
+static const Language* detect_language_by_content_buffer(const char* buffer, size_t bytes_read) {
+    if (!buffer || bytes_read == 0) return NULL;
+
+    /* Check each language's content patterns */
+    for (size_t i = 0; i < NUM_LANGUAGES; i++) {
+        const Language* lang = &g_languages[i];
+
+        if (!lang->content_patterns) continue;
+
+        if (match_content_patterns_for_lang(buffer, lang)) {
+            return lang;
+        }
+    }
+
+    return NULL;
+}
+
+/* Match content patterns for a specific language from buffer */
+static bool match_content_patterns_for_lang(const char* buffer, const Language* lang) {
+    if (!buffer || !lang || !lang->content_patterns) return false;
+
+    char* patterns_copy = strdup(lang->content_patterns);
+    if (!patterns_copy) return false;
+
+    char* saveptr = NULL;
+    char* pattern = strtok_r(patterns_copy, ",", &saveptr);
+    int match_count = 0;
+
+    while (pattern) {
+        while (isspace((unsigned char)*pattern)) pattern++;
+
+        if (strlen(pattern) > 0 && strstr(buffer, pattern)) {
+            match_count++;
+        }
+        pattern = strtok_r(NULL, ",", &saveptr);
+    }
+
+    free(patterns_copy);
+
+    /* Require at least 2 pattern matches for confidence */
+    return match_count >= 2;
 }
 
 /* Detect language by file content patterns */

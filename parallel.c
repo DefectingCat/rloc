@@ -32,7 +32,7 @@ void parallel_default_config(ParallelConfig* config) {
 }
 
 // Worker process function - counts files and writes results to pipe
-static void worker_process(const char** files, int start, int end, int write_fd,
+static void worker_process(ParallelInputFile* files, int start, int end, int write_fd,
                            char** skip_leading_exts, int n_skip_leading_exts, int skip_leading) {
     FILE* out = fdopen(write_fd, "w");
     if (!out) {
@@ -41,8 +41,8 @@ static void worker_process(const char** files, int start, int end, int write_fd,
     }
 
     for (int i = start; i < end; i++) {
-        const char* filepath = files[i];
-        const Language* lang = detect_language(filepath);
+        const char* filepath = files[i].filepath;
+        const Language* lang = files[i].lang;
         if (!lang) continue;
 
         // Determine skip_lines
@@ -76,7 +76,7 @@ static void worker_process(const char** files, int start, int end, int write_fd,
 }
 
 // Count files in parallel using fork
-int parallel_count_files(const char** files, int n_files, ParallelConfig* config,
+int parallel_count_files(ParallelInputFile* files, int n_files, ParallelConfig* config,
                          char** skip_leading_exts, int n_skip_leading_exts, int skip_leading,
                          ParallelResult* results, int* n_results) {
     if (!files || n_files <= 0 || !config || !results) {
@@ -89,13 +89,13 @@ int parallel_count_files(const char** files, int n_files, ParallelConfig* config
         // Single-threaded fallback
         int count = 0;
         for (int i = 0; i < n_files; i++) {
-            const Language* lang = detect_language(files[i]);
+            const Language* lang = files[i].lang;
             if (!lang) continue;
 
             int skip_lines_worker = 0;
             if (skip_leading > 0) {
                 if (n_skip_leading_exts > 0) {
-                    const char* ext = strrchr(files[i], '.');
+                    const char* ext = strrchr(files[i].filepath, '.');
                     if (ext) ext++;
                     for (int j = 0; j < n_skip_leading_exts; j++) {
                         const char* p = skip_leading_exts[j];
@@ -110,9 +110,9 @@ int parallel_count_files(const char** files, int n_files, ParallelConfig* config
                 }
             }
 
-            if (count_file_with_lang(files[i], lang, skip_lines_worker, &results[count].counts) ==
+            if (count_file_with_lang(files[i].filepath, lang, skip_lines_worker, &results[count].counts) ==
                 0) {
-                strncpy(results[count].filepath, files[i], sizeof(results[count].filepath) - 1);
+                strncpy(results[count].filepath, files[i].filepath, sizeof(results[count].filepath) - 1);
                 results[count].language = lang;
                 count++;
             }

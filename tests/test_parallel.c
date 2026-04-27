@@ -20,7 +20,7 @@ TEST(test_single_file_fallback) {
     config.chunk_size = 100;
     config.timeout_sec = 300;
 
-    const char* files[] = {"main.c"};
+    ParallelInputFile files[] = {{.filepath = "main.c", .lang = NULL}};
     ParallelResult results[1];
     int n_results = 1;
 
@@ -35,7 +35,11 @@ TEST(test_small_count_fallback) {
     config.chunk_size = 100;
     config.timeout_sec = 300;
 
-    const char* files[] = {"main.c", "cli.c", "counter.c"};
+    ParallelInputFile files[] = {
+        {.filepath = "main.c", .lang = NULL},
+        {.filepath = "cli.c", .lang = NULL},
+        {.filepath = "counter.c", .lang = NULL}
+    };
     ParallelResult results[10];
     int n_results = 10;
 

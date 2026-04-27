@@ -835,8 +835,8 @@ skip_normal_scan:;  // Empty statement before declaration (C11 compatibility)
                             "Warning: Thread processing failed, some files may not be counted\n");
                 }
             } else {
-                // Process mode (fork + pipes) - build array of file paths
-                const char** count_paths = malloc(n_count_files * sizeof(const char*));
+                // Process mode (fork + pipes) - build array with filepath + lang
+                ParallelInputFile* count_paths = malloc(n_count_files * sizeof(ParallelInputFile));
                 if (!count_paths) {
                     fprintf(stderr, "Error: Memory allocation failed\n");
                     free(files);
@@ -850,7 +850,9 @@ skip_normal_scan:;  // Empty statement before declaration (C11 compatibility)
                 int idx = 0;
                 for (int i = 0; i < filelist.count; i++) {
                     if (files[i].lang != NULL) {
-                        count_paths[idx++] = files[i].filepath;
+                        count_paths[idx].filepath = files[i].filepath;
+                        count_paths[idx].lang = files[i].lang;
+                        idx++;
                     }
                 }
 

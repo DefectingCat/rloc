@@ -1,6 +1,19 @@
 #ifndef UTIL_H
 #define UTIL_H
 #include <stddef.h>
+#include <stdbool.h>
+#include <sys/types.h>
+
+/* FileInfo - cached file attributes from single stat call */
+typedef struct {
+    mode_t mode;
+    off_t size;
+    bool is_symlink;
+    bool is_dir;
+    bool is_regular;
+} FileInfo;
+
+int get_file_info(const char* path, FileInfo* info);
 
 int is_regular_file(const char* path);
 int is_directory(const char* path);

@@ -6,6 +6,19 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+int get_file_info(const char* path, FileInfo* info) {
+    struct stat st;
+    if (lstat(path, &st) != 0) {
+        return -1;
+    }
+    info->mode = st.st_mode;
+    info->size = st.st_size;
+    info->is_symlink = S_ISLNK(st.st_mode);
+    info->is_dir = S_ISDIR(st.st_mode);
+    info->is_regular = S_ISREG(st.st_mode);
+    return 0;
+}
+
 int is_regular_file(const char* path) {
     struct stat st;
     if (stat(path, &st) != 0) {

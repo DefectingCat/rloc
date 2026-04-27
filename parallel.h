@@ -4,6 +4,12 @@
 #include "counter.h"
 #include "language.h"
 
+// Input file with pre-detected language
+typedef struct {
+    const char* filepath;
+    const Language* lang;
+} ParallelInputFile;
+
 // Result from parallel counting
 typedef struct {
     char filepath[1024];
@@ -23,7 +29,7 @@ void parallel_default_config(ParallelConfig* config);
 
 // Count files in parallel using multiple worker processes
 // Returns number of files counted, -1 on error
-int parallel_count_files(const char** files, int n_files, ParallelConfig* config,
+int parallel_count_files(ParallelInputFile* files, int n_files, ParallelConfig* config,
                          char** skip_leading_exts, int n_skip_leading_exts, int skip_leading,
                          ParallelResult* results, int* n_results);
 
