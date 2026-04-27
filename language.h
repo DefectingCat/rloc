@@ -25,9 +25,10 @@ typedef bool (*CommentHookFn)(const char* line, size_t line_len, size_t* comment
 /* Language definition */
 typedef struct {
     const char* name;
-    const char* extensions; /* Comma-separated, without dots */
-    const char* filenames;  /* Comma-separated exact filenames */
-    const char* shebangs;   /* Comma-separated interpreter patterns */
+    const char* extensions;       /* Comma-separated, without dots */
+    const char* filenames;        /* Comma-separated exact filenames */
+    const char* shebangs;         /* Comma-separated interpreter patterns */
+    const char* content_patterns; /* Comma-separated content detection patterns */
     size_t generic_filter_count;
     const GenericFilter* generic_filters;
     CommentHookFn comment_hook;
@@ -38,6 +39,7 @@ typedef struct {
 /* API functions */
 const Language* detect_language(const char* filepath);
 const Language* detect_language_by_shebang(const char* filepath);
+const Language* detect_language_by_content(const char* filepath);
 const Language* get_language_by_name(const char* name);
 
 /* Diagnostic functions */

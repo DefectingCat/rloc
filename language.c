@@ -10,6 +10,9 @@
 /* External language definitions array */
 extern const Language g_languages[];
 
+/* Forward declaration */
+static const Language* detect_shebang_from_buffer(const char* buffer, size_t bytes_read);
+
 /* Helper: Check if a string ends with a specific extension */
 static bool has_extension(const char* filepath, const char* ext) {
     size_t filepath_len = strlen(filepath);
@@ -98,10 +101,14 @@ static bool matches_filenames(const char* filepath, const char* filenames) {
 const Language* detect_language(const char* filepath) {
     if (!filepath) return NULL;
 
+    /* Try content detection first (highest priority) */
+    const Language* content_lang = detect_language_by_content(filepath);
+    if (content_lang) return content_lang;
+
     for (size_t i = 0; i < NUM_LANGUAGES; i++) {
         const Language* lang = &g_languages[i];
 
-        /* Try exact filename match first */
+        /* Try exact filename match */
         if (matches_filenames(filepath, lang->filenames)) {
             return lang;
         }
@@ -129,17 +136,26 @@ const Language* detect_language_by_shebang(const char* filepath) {
     buffer[bytes_read] = '\0';
     fclose(fp);
 
+    return detect_shebang_from_buffer(buffer, bytes_read);
+}
+
+/* Helper: Detect shebang from buffer content */
+const Language* detect_shebang_from_buffer(const char* buffer, size_t bytes_read) {
     /* Check if file starts with #! */
     if (bytes_read < 2 || buffer[0] != '#' || buffer[1] != '!') {
         return NULL;
     }
 
     /* Parse shebang line */
-    char* shebang_end = strchr(buffer, '\n');
+    char shebang_buf[256];
+    memcpy(shebang_buf, buffer, bytes_read < 256 ? bytes_read : 255);
+    shebang_buf[bytes_read < 256 ? bytes_read : 255] = '\0';
+
+    char* shebang_end = strchr(shebang_buf, '\n');
     if (shebang_end) *shebang_end = '\0';
 
     /* Extract interpreter path (skip #! and whitespace) */
-    char* interpreter = buffer + 2;
+    char* interpreter = shebang_buf + 2;
     while (isspace((unsigned char)*interpreter)) interpreter++;
 
     /* Get just the interpreter name (without path) */
@@ -173,6 +189,50 @@ const Language* detect_language_by_shebang(const char* filepath) {
         free(shebang_copy);
 
         if (matched) {
+            return lang;
+        }
+    }
+
+    return NULL;
+}
+
+/* Detect language by file content patterns */
+const Language* detect_language_by_content(const char* filepath) {
+    if (!filepath) return NULL;
+
+    FILE* fp = fopen(filepath, "r");
+    if (!fp) return NULL;
+
+    /* Read first 512 bytes for content detection */
+    char buffer[512];
+    size_t bytes_read = fread(buffer, 1, sizeof(buffer) - 1, fp);
+    buffer[bytes_read] = '\0';
+    fclose(fp);
+
+    /* Check each language's content patterns */
+    for (size_t i = 0; i < NUM_LANGUAGES; i++) {
+        const Language* lang = &g_languages[i];
+
+        if (!lang->content_patterns) continue;
+
+        char* patterns_copy = strdup(lang->content_patterns);
+        char* saveptr = NULL;
+        char* pattern = strtok_r(patterns_copy, ",", &saveptr);
+        int match_count = 0;
+
+        while (pattern) {
+            while (isspace((unsigned char)*pattern)) pattern++;
+
+            if (strlen(pattern) > 0 && strstr(buffer, pattern)) {
+                match_count++;
+            }
+            pattern = strtok_r(NULL, ",", &saveptr);
+        }
+
+        free(patterns_copy);
+
+        /* Require at least 2 pattern matches for confidence */
+        if (match_count >= 2) {
             return lang;
         }
     }
