@@ -4,7 +4,7 @@ INCLUDES = -I. -Itests
 BINDIR = bin
 
 # Default target
-all: bin/rloc
+build: bin/rloc
 
 # Ensure bin directory exists
 $(BINDIR):
@@ -46,11 +46,11 @@ bin/test_temp_manager_runner: tests/test_temp_manager.c tests/test_framework.c t
 bin/test_parallel_runner: tests/test_parallel.c tests/test_framework.c parallel.c counter.c language.c lang_defs.c strlit.c | $(BINDIR)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_parallel.c tests/test_framework.c parallel.c counter.c language.c lang_defs.c strlit.c
 
-bin/test_diff_runner: tests/test_diff.c tests/test_framework.c diff.c | $(BINDIR)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_diff.c tests/test_framework.c diff.c
+bin/test_diff_runner: tests/test_diff.c tests/test_framework.c diff.c util.c | $(BINDIR)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_diff.c tests/test_framework.c diff.c util.c
 
-bin/test_git_runner: tests/test_git.c tests/test_framework.c vcs.c | $(BINDIR)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_git.c tests/test_framework.c vcs.c
+bin/test_git_runner: tests/test_git.c tests/test_framework.c vcs.c util.c | $(BINDIR)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_git.c tests/test_framework.c vcs.c util.c
 
 bin/test_filter_runner: tests/test_filter.c tests/test_framework.c filelist.c util.c | $(BINDIR)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_filter.c tests/test_framework.c filelist.c util.c
@@ -58,8 +58,8 @@ bin/test_filter_runner: tests/test_filter.c tests/test_framework.c filelist.c ut
 bin/test_util_runner: tests/test_util.c tests/test_framework.c util.c | $(BINDIR)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_util.c tests/test_framework.c util.c
 
-bin/test_vcs_runner: tests/test_vcs.c tests/test_framework.c vcs.c | $(BINDIR)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_vcs.c tests/test_framework.c vcs.c
+bin/test_vcs_runner: tests/test_vcs.c tests/test_framework.c vcs.c util.c | $(BINDIR)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_vcs.c tests/test_framework.c vcs.c util.c
 
 bin/test_unique_runner: tests/test_unique.c tests/test_framework.c unique.c | $(BINDIR)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_unique.c tests/test_framework.c unique.c
@@ -101,4 +101,4 @@ clean:
 fmt:
 	clang-format -i *.c *.h tests/*.c tests/*.h
 
-.PHONY: all clean fmt test
+.PHONY: build clean fmt test
