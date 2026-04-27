@@ -2,6 +2,7 @@ CC = cc
 CFLAGS = -Wall -Wextra -std=c11
 INCLUDES = -I. -Itests
 BINDIR = bin
+PREFIX ?= /usr/local
 
 # Default target
 build: bin/rloc
@@ -105,8 +106,16 @@ test: bin/test_runner bin/test_filelist_runner bin/test_language_runner bin/test
 clean:
 	rm -rf $(BINDIR)
 
+# Install target
+install: bin/rloc
+	install -m 0755 bin/rloc $(PREFIX)/bin/rloc
+
+# Uninstall target
+uninstall:
+	rm -f $(PREFIX)/bin/rloc
+
 # Format target
 fmt:
 	clang-format -i *.c *.h tests/*.c tests/*.h
 
-.PHONY: build clean fmt test
+.PHONY: build clean fmt test install uninstall
