@@ -106,6 +106,11 @@ static const GenericFilter nginx_filters[] = {
     {FILTER_REMOVE_INLINE, "#", NULL},
 };
 
+static const GenericFilter lua_filters[] = {
+    {FILTER_REMOVE_INLINE, "--", NULL},
+    {FILTER_REMOVE_BETWEEN, "--[[", "]]"},
+};
+
 /* Language definitions array */
 const Language g_languages[NUM_LANGUAGES] = {{.name = "Python",
                                               .extensions = "py,pyw",
@@ -338,6 +343,15 @@ const Language g_languages[NUM_LANGUAGES] = {{.name = "Python",
                                               .shebangs = NULL,
                                               .generic_filter_count = 1,
                                               .generic_filters = nginx_filters,
+                                              .comment_hook = NULL,
+                                              .str_delimiters = "\"'",
+                                              .str_escape = "\\"},
+                                             {.name = "Lua",
+                                              .extensions = "lua",
+                                              .filenames = NULL,
+                                              .shebangs = "lua",
+                                              .generic_filter_count = 2,
+                                              .generic_filters = lua_filters,
                                               .comment_hook = NULL,
                                               .str_delimiters = "\"'",
                                               .str_escape = "\\"}};

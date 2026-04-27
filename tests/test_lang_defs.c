@@ -103,7 +103,7 @@ static int lang_has_multiple_inline_comments(const Language* lang) {
 /*  Test: total number of built-in languages                          */
 /* ------------------------------------------------------------------ */
 TEST(test_num_languages) {
-    ASSERT_EQ(NUM_LANGUAGES, 26);
+    ASSERT_EQ(NUM_LANGUAGES, 27);
 }
 
 /* ------------------------------------------------------------------ */
