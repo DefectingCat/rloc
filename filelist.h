@@ -8,12 +8,12 @@ typedef struct {
     int n_exclude_dirs;
     char** exclude_patterns;  // Glob patterns from --exclude-list-file
     int n_exclude_patterns;
-    char* match_pattern;      // Regex pattern for --match-f
-    char* not_match_pattern;  // Regex pattern for --not-match-f
-    char* match_d_pattern;    // Regex pattern for --match-d
-    char* not_match_d_pattern; // Regex pattern for --not-match-d
-    int fullpath;             // Match full path instead of basename
-    int follow_links;         // Follow symlinks to directories
+    char* match_pattern;        // Regex pattern for --match-f
+    char* not_match_pattern;    // Regex pattern for --not-match-f
+    char* match_d_pattern;      // Regex pattern for --match-d
+    char* not_match_d_pattern;  // Regex pattern for --not-match-d
+    int fullpath;               // Match full path instead of basename
+    int follow_links;           // Follow symlinks to directories
 } FilelistConfig;
 
 typedef struct {

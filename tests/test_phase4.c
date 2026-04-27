@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+
 #include "../cli.h"
 #include "test_framework.h"
 
@@ -161,7 +162,8 @@ TEST(test_diagnostic_output_cli) {
     CliArgs args;
     memset(&args, 0, sizeof(args));
 
-    char* argv[] = {"rloc", "--categorized=cat.txt", "--counted=count.txt", "--found=found.txt", "."};
+    char* argv[] = {"rloc", "--categorized=cat.txt", "--counted=count.txt", "--found=found.txt",
+                    "."};
     int ret = cli_parse(5, argv, &args);
 
     ASSERT_EQ(ret, 0);

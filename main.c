@@ -7,20 +7,20 @@
 #include <strings.h>
 #include <time.h>
 
+#include "archive.h"
 #include "cli.h"
 #include "config.h"
 #include "counter.h"
 #include "diff.h"
 #include "filelist.h"
+#include "lang_defs.h"
 #include "language.h"
 #include "output.h"
+#include "parallel.h"
+#include "temp_manager.h"
 #include "unique.h"
 #include "util.h"
-#include "lang_defs.h"
 #include "vcs.h"
-#include "temp_manager.h"
-#include "archive.h"
-#include "parallel.h"
 
 static const char* get_extension(const char* filepath) {
     const char* ext = strrchr(filepath, '.');
@@ -82,11 +82,31 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    if (args.show_help) { cli_print_help(argv[0]); cli_free(&args); return 0; }
-    if (args.show_version) { cli_print_version(); cli_free(&args); return 0; }
-    if (args.show_lang) { lang_show(args.show_lang_arg); cli_free(&args); return 0; }
-    if (args.show_ext) { ext_show(args.show_ext_arg); cli_free(&args); return 0; }
-    if (args.explain_lang) { explain_language(args.explain_lang); cli_free(&args); return 0; }
+    if (args.show_help) {
+        cli_print_help(argv[0]);
+        cli_free(&args);
+        return 0;
+    }
+    if (args.show_version) {
+        cli_print_version();
+        cli_free(&args);
+        return 0;
+    }
+    if (args.show_lang) {
+        lang_show(args.show_lang_arg);
+        cli_free(&args);
+        return 0;
+    }
+    if (args.show_ext) {
+        ext_show(args.show_ext_arg);
+        cli_free(&args);
+        return 0;
+    }
+    if (args.explain_lang) {
+        explain_language(args.explain_lang);
+        cli_free(&args);
+        return 0;
+    }
 
     // Validate mutually exclusive options
     if (args.strip_comments && args.strip_code) {
@@ -198,11 +218,10 @@ int main(int argc, char** argv) {
             if (entries) {
                 for (int i = 0; i < n_diff_files; i++) {
                     entries[i].filepath = diff_files[i].filepath;
-                    entries[i].type = (diff_files[i].added > 0 && diff_files[i].removed == 0)
-                                      ? ALIGN_ADDED
-                                      : (diff_files[i].removed > 0 && diff_files[i].added == 0)
-                                        ? ALIGN_REMOVED
-                                        : ALIGN_MODIFIED;
+                    entries[i].type =
+                        (diff_files[i].added > 0 && diff_files[i].removed == 0)   ? ALIGN_ADDED
+                        : (diff_files[i].removed > 0 && diff_files[i].added == 0) ? ALIGN_REMOVED
+                                                                                  : ALIGN_MODIFIED;
                     entries[i].added = diff_files[i].added;
                     entries[i].removed = diff_files[i].removed;
                     entries[i].language = diff_files[i].lang ? diff_files[i].lang : "(unknown)";
@@ -237,7 +256,8 @@ int main(int argc, char** argv) {
 
     if (args.exclude_list_file) {
         if (filelist_load_exclude_patterns(args.exclude_list_file, &config) != 0) {
-            fprintf(stderr, "Error: Cannot load exclude patterns from '%s'\n", args.exclude_list_file);
+            fprintf(stderr, "Error: Cannot load exclude patterns from '%s'\n",
+                    args.exclude_list_file);
             cli_free(&args);
             return 1;
         }
@@ -273,7 +293,8 @@ int main(int argc, char** argv) {
         // Extract each file from git and add to filelist
         for (int j = 0; j < n_git_files; j++) {
             size_t content_len = 0;
-            char* content = vcs_get_file_at_commit(repo_path, args.git_ref, git_files[j], &content_len);
+            char* content =
+                vcs_get_file_at_commit(repo_path, args.git_ref, git_files[j], &content_len);
             if (content && content_len > 0) {
                 // Write to temp file
                 char temp_path[2048];
@@ -349,8 +370,10 @@ int main(int argc, char** argv) {
             if (is_directory(path)) {
                 int n_vcs_files = 0;
                 char** vcs_files = NULL;
-                if (effective_vcs == VCS_GIT) vcs_files = vcs_get_files_git(path, &n_vcs_files);
-                else if (effective_vcs == VCS_SVN) vcs_files = vcs_get_files_svn(path, &n_vcs_files);
+                if (effective_vcs == VCS_GIT)
+                    vcs_files = vcs_get_files_git(path, &n_vcs_files);
+                else if (effective_vcs == VCS_SVN)
+                    vcs_files = vcs_get_files_svn(path, &n_vcs_files);
                 if (!vcs_files || n_vcs_files == 0) {
                     fprintf(stderr, "Error: Cannot get %s files from '%s'\n",
                             effective_vcs == VCS_GIT ? "git" : "svn", path);
@@ -361,14 +384,24 @@ int main(int argc, char** argv) {
                     if (filelist.count >= filelist.capacity) {
                         int nc = (filelist.capacity == 0) ? 16 : filelist.capacity * 2;
                         char** np = realloc(filelist.paths, nc * sizeof(char*));
-                        if (!np) { vcs_free_files(vcs_files, n_vcs_files); filelist_free(&filelist); cli_free(&args); return 1; }
+                        if (!np) {
+                            vcs_free_files(vcs_files, n_vcs_files);
+                            filelist_free(&filelist);
+                            cli_free(&args);
+                            return 1;
+                        }
                         filelist.paths = np;
                         filelist.capacity = nc;
                     }
                     char full[2048];
                     snprintf(full, sizeof(full), "%s/%s", path, vcs_files[j]);
                     filelist.paths[filelist.count] = strdup(full);
-                    if (!filelist.paths[filelist.count]) { vcs_free_files(vcs_files, n_vcs_files); filelist_free(&filelist); cli_free(&args); return 1; }
+                    if (!filelist.paths[filelist.count]) {
+                        vcs_free_files(vcs_files, n_vcs_files);
+                        filelist_free(&filelist);
+                        cli_free(&args);
+                        return 1;
+                    }
                     filelist.count++;
                 }
                 vcs_free_files(vcs_files, n_vcs_files);
@@ -376,12 +409,20 @@ int main(int argc, char** argv) {
                 if (filelist.count >= filelist.capacity) {
                     int nc = (filelist.capacity == 0) ? 16 : filelist.capacity * 2;
                     char** np = realloc(filelist.paths, nc * sizeof(char*));
-                    if (!np) { filelist_free(&filelist); cli_free(&args); return 1; }
+                    if (!np) {
+                        filelist_free(&filelist);
+                        cli_free(&args);
+                        return 1;
+                    }
                     filelist.paths = np;
                     filelist.capacity = nc;
                 }
                 filelist.paths[filelist.count] = strdup(path);
-                if (!filelist.paths[filelist.count]) { filelist_free(&filelist); cli_free(&args); return 1; }
+                if (!filelist.paths[filelist.count]) {
+                    filelist_free(&filelist);
+                    cli_free(&args);
+                    return 1;
+                }
                 filelist.count++;
             }
         }
@@ -401,7 +442,8 @@ int main(int argc, char** argv) {
                     if (extract_dir) {
                         // Scan extracted directory
                         if (filelist_scan(extract_dir, &config, &filelist) != 0) {
-                            fprintf(stderr, "Warning: Cannot scan extracted archive '%s'\n", extract_dir);
+                            fprintf(stderr, "Warning: Cannot scan extracted archive '%s'\n",
+                                    extract_dir);
                         }
                         // extract_dir is managed by temp_mgr, will be cleaned up on exit
                     } else {
@@ -412,12 +454,22 @@ int main(int argc, char** argv) {
                     if (filelist.count >= filelist.capacity) {
                         int nc = (filelist.capacity == 0) ? 16 : filelist.capacity * 2;
                         char** np = realloc(filelist.paths, nc * sizeof(char*));
-                        if (!np) { filelist_free(&filelist); temp_manager_destroy(&temp_mgr); cli_free(&args); return 1; }
+                        if (!np) {
+                            filelist_free(&filelist);
+                            temp_manager_destroy(&temp_mgr);
+                            cli_free(&args);
+                            return 1;
+                        }
                         filelist.paths = np;
                         filelist.capacity = nc;
                     }
                     filelist.paths[filelist.count] = strdup(path);
-                    if (!filelist.paths[filelist.count]) { filelist_free(&filelist); temp_manager_destroy(&temp_mgr); cli_free(&args); return 1; }
+                    if (!filelist.paths[filelist.count]) {
+                        filelist_free(&filelist);
+                        temp_manager_destroy(&temp_mgr);
+                        cli_free(&args);
+                        return 1;
+                    }
                     filelist.count++;
                 }
             } else {
@@ -427,8 +479,7 @@ int main(int argc, char** argv) {
         }
     }
 
-skip_normal_scan:
-    ; // Empty statement before declaration (C11 compatibility)
+skip_normal_scan:;  // Empty statement before declaration (C11 compatibility)
 
     FileStats* files = malloc(filelist.count * sizeof(FileStats));
     if (!files) {
@@ -533,8 +584,10 @@ skip_normal_scan:
                         *interp_end = '\0';
                         // Get just the name without path
                         const char* interp_name = strrchr(interp, '/');
-                        if (interp_name) interp_name++;
-                        else interp_name = interp;
+                        if (interp_name)
+                            interp_name++;
+                        else
+                            interp_name = interp;
                         // Match against --script-lang mappings
                         for (int j = 0; j < args.n_script_lang; j++) {
                             if (strcmp(interp_name, args.script_names[j]) == 0 ||
@@ -551,7 +604,8 @@ skip_normal_scan:
         }
 
         if (args.n_include_langs > 0) {
-            if (lang == NULL || !is_in_string_array(lang->name, args.include_langs, args.n_include_langs)) {
+            if (lang == NULL ||
+                !is_in_string_array(lang->name, args.include_langs, args.n_include_langs)) {
                 files[i].ignore_reason = "include-lang filter";
                 continue;
             }
@@ -586,8 +640,7 @@ skip_normal_scan:
         FILE* fp = fopen(args.unique_file, "w");
         if (fp) {
             for (int i = 0; i < filelist.count; i++)
-                if (files[i].ignore_reason == NULL)
-                    fprintf(fp, "%s\n", files[i].filepath);
+                if (files[i].ignore_reason == NULL) fprintf(fp, "%s\n", files[i].filepath);
             fclose(fp);
         }
     }
@@ -607,8 +660,7 @@ skip_normal_scan:
     if (args.found_file) {
         FILE* fp = fopen(args.found_file, "w");
         if (fp) {
-            for (int i = 0; i < filelist.count; i++)
-                fprintf(fp, "%s\n", files[i].filepath);
+            for (int i = 0; i < filelist.count; i++) fprintf(fp, "%s\n", files[i].filepath);
             fclose(fp);
         }
     }
@@ -618,8 +670,7 @@ skip_normal_scan:
         FILE* fp = fopen(args.counted_file, "w");
         if (fp) {
             for (int i = 0; i < filelist.count; i++)
-                if (files[i].lang != NULL)
-                    fprintf(fp, "%s\n", files[i].filepath);
+                if (files[i].lang != NULL) fprintf(fp, "%s\n", files[i].filepath);
             fclose(fp);
         }
     }
@@ -760,8 +811,8 @@ skip_normal_scan:
 
             int n_par_results = n_count_files;
             int par_count = parallel_count_files(count_paths, n_count_files, &par_config,
-                                                  args.skip_leading_exts, args.n_skip_leading_exts,
-                                                  args.skip_leading, par_results, &n_par_results);
+                                                 args.skip_leading_exts, args.n_skip_leading_exts,
+                                                 args.skip_leading, par_results, &n_par_results);
 
             // Copy results back to files array
             for (int i = 0; i < n_par_results; i++) {
@@ -778,7 +829,8 @@ skip_normal_scan:
             free(count_paths);
 
             if (par_count < 0) {
-                fprintf(stderr, "Warning: Parallel processing failed, some files may not be counted\n");
+                fprintf(stderr,
+                        "Warning: Parallel processing failed, some files may not be counted\n");
             }
         } else {
             // Sequential counting (fallback for small file counts or single worker)
@@ -790,7 +842,8 @@ skip_normal_scan:
                 if (args.skip_leading > 0) {
                     if (args.n_skip_leading_exts > 0) {
                         const char* ext = get_extension(files[i].filepath);
-                        if (extension_matches(ext, args.skip_leading_exts, args.n_skip_leading_exts)) {
+                        if (extension_matches(ext, args.skip_leading_exts,
+                                              args.n_skip_leading_exts)) {
                             skip_lines = args.skip_leading;
                         }
                     } else {
@@ -798,7 +851,8 @@ skip_normal_scan:
                     }
                 }
 
-                if (count_file_with_lang(files[i].filepath, files[i].lang, skip_lines, &files[i].counts) != 0) {
+                if (count_file_with_lang(files[i].filepath, files[i].lang, skip_lines,
+                                         &files[i].counts) != 0) {
                     fprintf(stderr, "Error: Cannot read file '%s'\n", files[i].filepath);
                     files[i].counts.blank = 0;
                     files[i].counts.comment = 0;
@@ -845,8 +899,8 @@ skip_normal_scan:
             while (fgets(line, sizeof(line), src_fp) != NULL) {
                 size_t len = strlen(line);
                 // Remove trailing newline for analysis
-                while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) {
-                    line[len-1] = '\0';
+                while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
+                    line[len - 1] = '\0';
                     len--;
                 }
 
@@ -911,38 +965,55 @@ skip_normal_scan:
 
     switch (args.output_format) {
         case FORMAT_JSON:
-            if (args.by_file) output_json_by_file(files, filelist.count, elapsed_sec);
-            else output_json(files, filelist.count, elapsed_sec);
+            if (args.by_file)
+                output_json_by_file(files, filelist.count, elapsed_sec);
+            else
+                output_json(files, filelist.count, elapsed_sec);
             break;
         case FORMAT_CSV:
-            if (args.by_file) output_csv_by_file(files, filelist.count, elapsed_sec);
-            else output_csv(files, filelist.count, elapsed_sec);
+            if (args.by_file)
+                output_csv_by_file(files, filelist.count, elapsed_sec);
+            else
+                output_csv(files, filelist.count, elapsed_sec);
             break;
         case FORMAT_MD:
-            if (args.by_file) output_md_by_file(files, filelist.count, elapsed_sec);
-            else output_md(files, filelist.count, elapsed_sec);
+            if (args.by_file)
+                output_md_by_file(files, filelist.count, elapsed_sec);
+            else
+                output_md(files, filelist.count, elapsed_sec);
             break;
         case FORMAT_YAML:
-            if (args.by_file) output_yaml_by_file(files, filelist.count, elapsed_sec);
-            else output_yaml(files, filelist.count, elapsed_sec);
+            if (args.by_file)
+                output_yaml_by_file(files, filelist.count, elapsed_sec);
+            else
+                output_yaml(files, filelist.count, elapsed_sec);
             break;
         case FORMAT_XML:
-            if (args.by_file) output_xml_by_file(files, filelist.count, elapsed_sec);
-            else output_xml(files, filelist.count, elapsed_sec);
+            if (args.by_file)
+                output_xml_by_file(files, filelist.count, elapsed_sec);
+            else
+                output_xml(files, filelist.count, elapsed_sec);
             break;
         case FORMAT_HTML:
-            if (args.by_file) output_html_by_file(files, filelist.count, elapsed_sec);
-            else output_html(files, filelist.count, elapsed_sec);
+            if (args.by_file)
+                output_html_by_file(files, filelist.count, elapsed_sec);
+            else
+                output_html(files, filelist.count, elapsed_sec);
             break;
         case FORMAT_SQL:
-            if (args.by_file) output_sql_by_file(files, filelist.count, elapsed_sec, NULL);
-            else output_sql(files, filelist.count, elapsed_sec, NULL);
+            if (args.by_file)
+                output_sql_by_file(files, filelist.count, elapsed_sec, NULL);
+            else
+                output_sql(files, filelist.count, elapsed_sec, NULL);
             break;
         case FORMAT_TEXT:
         default:
-            if (args.by_file_by_lang) output_by_file_by_lang(files, filelist.count, elapsed_sec);
-            else if (args.by_file) output_text_by_file(files, filelist.count, elapsed_sec);
-            else output_text(files, filelist.count, elapsed_sec);
+            if (args.by_file_by_lang)
+                output_by_file_by_lang(files, filelist.count, elapsed_sec);
+            else if (args.by_file)
+                output_text_by_file(files, filelist.count, elapsed_sec);
+            else
+                output_text(files, filelist.count, elapsed_sec);
             break;
     }
 

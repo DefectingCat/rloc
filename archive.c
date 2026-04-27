@@ -1,9 +1,10 @@
 #include "archive.h"
-#include "exec_helper.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "exec_helper.h"
 
 // Detect archive type from filename
 ArchiveType archive_detect_type(const char* filename) {
@@ -43,12 +44,18 @@ int archive_is_archive(const char* filename) {
 // Get tool name needed to extract archive
 const char* archive_get_tool(ArchiveType type) {
     switch (type) {
-        case ARCHIVE_ZIP: return "unzip";
-        case ARCHIVE_TAR: return "tar";
-        case ARCHIVE_TAR_GZ: return "tar";
-        case ARCHIVE_TAR_BZ2: return "tar";
-        case ARCHIVE_TAR_XZ: return "tar";
-        default: return NULL;
+        case ARCHIVE_ZIP:
+            return "unzip";
+        case ARCHIVE_TAR:
+            return "tar";
+        case ARCHIVE_TAR_GZ:
+            return "tar";
+        case ARCHIVE_TAR_BZ2:
+            return "tar";
+        case ARCHIVE_TAR_XZ:
+            return "tar";
+        default:
+            return NULL;
     }
 }
 

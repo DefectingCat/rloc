@@ -84,7 +84,8 @@ TEST(test_file_not_found) {
 TEST(test_block_comment_multiline) {
     CountResult result;
     const Language* c = get_language_by_name("C");
-    const char* input = "int x;\n/* comment line 1\n   comment line 2\n   comment line 3 */\nint y;\n";
+    const char* input =
+        "int x;\n/* comment line 1\n   comment line 2\n   comment line 3 */\nint y;\n";
     count_lines_with_lang(input, strlen(input), c, 0, &result);
     ASSERT_EQ(result.code, 2);
     ASSERT_EQ(result.comment, 3);
@@ -276,12 +277,18 @@ int main(void) {
     register_test("test_only_comments_file", test_func_test_only_comments_file);
     register_test("test_code_comment_mixed_tight", test_func_test_code_comment_mixed_tight);
     register_test("test_unclosed_block_comment", test_func_test_unclosed_block_comment);
-    register_test("test_block_comment_with_code_after", test_func_test_block_comment_with_code_after);
-    register_test("test_string_with_block_comment_markers", test_func_test_string_with_block_comment_markers);
-    register_test("test_blank_line_with_carriage_return", test_func_test_blank_line_with_carriage_return);
-    register_test("test_multiple_block_comments_on_one_line", test_func_test_multiple_block_comments_on_one_line);
-    register_test("test_code_before_and_after_block_comment", test_func_test_code_before_and_after_block_comment);
-    register_test("test_line_comment_at_eof_no_newline", test_func_test_line_comment_at_eof_no_newline);
+    register_test("test_block_comment_with_code_after",
+                  test_func_test_block_comment_with_code_after);
+    register_test("test_string_with_block_comment_markers",
+                  test_func_test_string_with_block_comment_markers);
+    register_test("test_blank_line_with_carriage_return",
+                  test_func_test_blank_line_with_carriage_return);
+    register_test("test_multiple_block_comments_on_one_line",
+                  test_func_test_multiple_block_comments_on_one_line);
+    register_test("test_code_before_and_after_block_comment",
+                  test_func_test_code_before_and_after_block_comment);
+    register_test("test_line_comment_at_eof_no_newline",
+                  test_func_test_line_comment_at_eof_no_newline);
 
     run_all_tests();
     return (tests_passed == tests_run) ? 0 : 1;

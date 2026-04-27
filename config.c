@@ -43,11 +43,17 @@ static int append_csv_to_array(const char* csv, char*** array, int* count) {
                 *array = malloc(cap * sizeof(char*));
             } else {
                 char** new_arr = realloc(*array, cap * sizeof(char*));
-                if (!new_arr) { free(copy); return -1; }
+                if (!new_arr) {
+                    free(copy);
+                    return -1;
+                }
                 *array = new_arr;
             }
             (*array)[*count] = strdup(token);
-            if (!(*array)[*count]) { free(copy); return -1; }
+            if (!(*array)[*count]) {
+                free(copy);
+                return -1;
+            }
             (*count)++;
         }
         token = strtok(NULL, ",");
@@ -63,8 +69,8 @@ static char* trim_leading(char* str) {
 
 static void trim_trailing(char* str) {
     int len = strlen(str);
-    while (len > 0 && (str[len - 1] == ' ' || str[len - 1] == '\t' ||
-                       str[len - 1] == '\n' || str[len - 1] == '\r')) {
+    while (len > 0 && (str[len - 1] == ' ' || str[len - 1] == '\t' || str[len - 1] == '\n' ||
+                       str[len - 1] == '\r')) {
         str[--len] = '\0';
     }
 }
@@ -137,7 +143,8 @@ int config_load(const char* filepath, CliArgs* args) {
                 if (comma) {
                     *comma = '\0';
                     args->skip_leading = (int)strtol(value, NULL, 10);
-                    append_csv_to_array(comma + 1, &args->skip_leading_exts, &args->n_skip_leading_exts);
+                    append_csv_to_array(comma + 1, &args->skip_leading_exts,
+                                        &args->n_skip_leading_exts);
                 } else {
                     args->skip_leading = (int)strtol(value, NULL, 10);
                 }
@@ -155,9 +162,12 @@ int config_load(const char* filepath, CliArgs* args) {
                 args->sql_file = strdup(value);
                 args->output_format = FORMAT_SQL;
             } else if (strcmp(key, "--vcs") == 0) {
-                if (strcmp(value, "git") == 0) args->vcs = VCS_GIT;
-                else if (strcmp(value, "svn") == 0) args->vcs = VCS_SVN;
-                else if (strcmp(value, "auto") == 0) args->vcs = VCS_AUTO;
+                if (strcmp(value, "git") == 0)
+                    args->vcs = VCS_GIT;
+                else if (strcmp(value, "svn") == 0)
+                    args->vcs = VCS_SVN;
+                else if (strcmp(value, "auto") == 0)
+                    args->vcs = VCS_AUTO;
             } else if (strcmp(key, "--diff") == 0) {
                 if (args->diff_commit1) free(args->diff_commit1);
                 if (args->diff_commit2) free(args->diff_commit2);

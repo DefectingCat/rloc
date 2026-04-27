@@ -49,8 +49,8 @@ char* find_tool_path(const char* tool_name) {
 }
 
 // Safely execute a command template with path substitution
-ExecResult safe_exec(const char* cmd_template, const char* path,
-                     char* output, size_t out_len, int timeout_sec) {
+ExecResult safe_exec(const char* cmd_template, const char* path, char* output, size_t out_len,
+                     int timeout_sec) {
     (void)timeout_sec;  // Currently unused - reserved for future timeout support
     if (!cmd_template || !output || out_len == 0) {
         return EXEC_FAILED;

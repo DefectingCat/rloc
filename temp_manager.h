@@ -11,12 +11,12 @@
 
 // Temporary file manager
 typedef struct {
-    char* temp_dirs[TEMP_MANAGER_MAX_DIRS];   // Registered temp directories
-    char* temp_files[TEMP_MANAGER_MAX_FILES]; // Registered temp files
+    char* temp_dirs[TEMP_MANAGER_MAX_DIRS];    // Registered temp directories
+    char* temp_files[TEMP_MANAGER_MAX_FILES];  // Registered temp files
     int n_dirs;
     int n_files;
-    size_t total_size;     // Accumulated temp space usage
-    size_t max_total_size; // Max temp space limit
+    size_t total_size;      // Accumulated temp space usage
+    size_t max_total_size;  // Max temp space limit
 } TempManager;
 
 // Create and initialize a temp manager. Returns 0 on success, -1 on error.
@@ -31,7 +31,8 @@ char* temp_manager_create_dir(TempManager* mgr, const char* prefix);
 // Create a temporary file with given prefix. Returns path on success, NULL on error.
 char* temp_manager_create_file(TempManager* mgr, const char* prefix);
 
-// Register an externally created temporary directory for cleanup. Returns 0 on success, -1 on error.
+// Register an externally created temporary directory for cleanup. Returns 0 on success, -1 on
+// error.
 int temp_manager_register_dir(TempManager* mgr, const char* path);
 
 // Register an externally created temporary file for cleanup. Returns 0 on success, -1 on error.

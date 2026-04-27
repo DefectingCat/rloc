@@ -4,16 +4,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "test_framework.h"
 #include "../util.h"
+#include "test_framework.h"
 
 /* Test directory for temporary files */
 static const char* test_dir = "/tmp/rloc_test_util";
 
 /* Helper to create a temporary test directory */
-static void create_test_dir(void) {
-    mkdir(test_dir, 0755);
-}
+static void create_test_dir(void) { mkdir(test_dir, 0755); }
 
 /* Helper to clean up test directory */
 static void cleanup_test_dir(void) {
@@ -279,7 +277,7 @@ TEST(test_buffer_append_basic) {
 /* Test create 1KB buffer, append 100KB data without truncation */
 TEST(test_buffer_large_append) {
     Buffer* buf = buffer_new(1024);
-    size_t big_size = 100 * 1024; // 100KB
+    size_t big_size = 100 * 1024;  // 100KB
     char* big_data = malloc(big_size);
     ASSERT_TRUE(big_data != NULL);
 
@@ -307,9 +305,7 @@ TEST(test_buffer_large_append) {
 }
 
 /* Test buffer_append with NULL buf */
-TEST(test_buffer_append_null_buf) {
-    ASSERT_EQ(buffer_append(NULL, "data", 4), -1);
-}
+TEST(test_buffer_append_null_buf) { ASSERT_EQ(buffer_append(NULL, "data", 4), -1); }
 
 /* Test buffer_append with NULL data */
 TEST(test_buffer_append_null_data) {
@@ -382,9 +378,7 @@ TEST(test_buffer_reserve_already_sufficient) {
 }
 
 /* Test buffer_reserve NULL buf */
-TEST(test_buffer_reserve_null) {
-    ASSERT_EQ(buffer_reserve(NULL, 1024), -1);
-}
+TEST(test_buffer_reserve_null) { ASSERT_EQ(buffer_reserve(NULL, 1024), -1); }
 
 /* Test multiple appends trigger growth */
 TEST(test_buffer_multiple_appends) {
@@ -434,19 +428,24 @@ TEST(test_buffer_mock_repo_large) {
 int main(void) {
     /* Register all tests */
     register_test("test_is_regular_file_positive", test_func_test_is_regular_file_positive);
-    register_test("test_is_regular_file_negative_directory", test_func_test_is_regular_file_negative_directory);
+    register_test("test_is_regular_file_negative_directory",
+                  test_func_test_is_regular_file_negative_directory);
     register_test("test_is_regular_file_nonexistent", test_func_test_is_regular_file_nonexistent);
     register_test("test_is_directory_positive", test_func_test_is_directory_positive);
     register_test("test_is_directory_negative_file", test_func_test_is_directory_negative_file);
     register_test("test_is_directory_nonexistent", test_func_test_is_directory_nonexistent);
     register_test("test_is_symlink_positive", test_func_test_is_symlink_positive);
-    register_test("test_is_symlink_negative_regular_file", test_func_test_is_symlink_negative_regular_file);
-    register_test("test_is_symlink_negative_directory", test_func_test_is_symlink_negative_directory);
+    register_test("test_is_symlink_negative_regular_file",
+                  test_func_test_is_symlink_negative_regular_file);
+    register_test("test_is_symlink_negative_directory",
+                  test_func_test_is_symlink_negative_directory);
     register_test("test_get_file_size_positive", test_func_test_get_file_size_positive);
     register_test("test_get_file_size_empty", test_func_test_get_file_size_empty);
     register_test("test_get_file_size_nonexistent", test_func_test_get_file_size_nonexistent);
-    register_test("test_path_join_with_trailing_slash", test_func_test_path_join_with_trailing_slash);
-    register_test("test_path_join_without_trailing_slash", test_func_test_path_join_without_trailing_slash);
+    register_test("test_path_join_with_trailing_slash",
+                  test_func_test_path_join_with_trailing_slash);
+    register_test("test_path_join_without_trailing_slash",
+                  test_func_test_path_join_without_trailing_slash);
     register_test("test_path_join_empty_dir", test_func_test_path_join_empty_dir);
     register_test("test_path_join_empty_filename", test_func_test_path_join_empty_filename);
     register_test("test_path_join_both_empty", test_func_test_path_join_both_empty);
@@ -467,7 +466,8 @@ int main(void) {
     register_test("test_buffer_steal_null", test_func_test_buffer_steal_null);
     register_test("test_buffer_clear", test_func_test_buffer_clear);
     register_test("test_buffer_reserve", test_func_test_buffer_reserve);
-    register_test("test_buffer_reserve_already_sufficient", test_func_test_buffer_reserve_already_sufficient);
+    register_test("test_buffer_reserve_already_sufficient",
+                  test_func_test_buffer_reserve_already_sufficient);
     register_test("test_buffer_reserve_null", test_func_test_buffer_reserve_null);
     register_test("test_buffer_multiple_appends", test_func_test_buffer_multiple_appends);
     register_test("test_buffer_mock_repo_large", test_func_test_buffer_mock_repo_large);

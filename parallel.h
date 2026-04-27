@@ -13,9 +13,9 @@ typedef struct {
 
 // Parallel count configuration
 typedef struct {
-    int n_workers;          // Number of worker processes (default: CPU count)
-    size_t chunk_size;      // Files per chunk (default: 100)
-    int timeout_sec;        // Worker timeout in seconds
+    int n_workers;      // Number of worker processes (default: CPU count)
+    size_t chunk_size;  // Files per chunk (default: 100)
+    int timeout_sec;    // Worker timeout in seconds
 } ParallelConfig;
 
 // Get default parallel configuration (CPU count)

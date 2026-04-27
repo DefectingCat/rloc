@@ -161,7 +161,8 @@ void count_lines(const char* src, size_t len, CountResult* result) {
     }
 }
 
-void count_lines_with_lang(const char* src, size_t len, const Language* lang, int skip_lines, CountResult* result) {
+void count_lines_with_lang(const char* src, size_t len, const Language* lang, int skip_lines,
+                           CountResult* result) {
     result->blank = 0;
     result->comment = 0;
     result->code = 0;
@@ -436,7 +437,8 @@ int count_file(const char* filepath, CountResult* result) {
     return 0;
 }
 
-int count_file_with_lang(const char* filepath, const Language* lang, int skip_lines, CountResult* result) {
+int count_file_with_lang(const char* filepath, const Language* lang, int skip_lines,
+                         CountResult* result) {
     FILE* file = fopen(filepath, "rb");
     if (file == NULL) {
         return -1;

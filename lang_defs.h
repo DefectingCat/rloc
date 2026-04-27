@@ -10,9 +10,9 @@
 /* Custom language definition structure (for user-defined languages) */
 typedef struct {
     char name[64];
-    char extensions[256];      // comma-separated
-    char filenames[256];       // comma-separated
-    char shebangs[256];        // comma-separated
+    char extensions[256];  // comma-separated
+    char filenames[256];   // comma-separated
+    char shebangs[256];    // comma-separated
     char str_delimiters[16];
     char str_escape[8];
     GenericFilter filters[MAX_CUSTOM_FILTERS];

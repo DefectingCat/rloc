@@ -11,8 +11,8 @@ static const Language* lang_c(void) { return get_language_by_name("C"); }
 static const Language* lang_python(void) { return get_language_by_name("Python"); }
 
 /* Test fixture: create a single FileStats entry */
-static FileStats make_stats(const char* path, const Language* lang,
-                            int blank, int comment, int code) {
+static FileStats make_stats(const char* path, const Language* lang, int blank, int comment,
+                            int code) {
     FileStats fs;
     fs.filepath = path;
     fs.lang = lang;
@@ -31,10 +31,17 @@ static char* capture_to_temp(void (*fn)(void)) {
     close(fd);
 
     int orig_fd = dup(STDOUT_FILENO);
-    if (orig_fd < 0) { remove(tmpname); return NULL; }
+    if (orig_fd < 0) {
+        remove(tmpname);
+        return NULL;
+    }
 
     FILE* tmp = fopen(tmpname, "w");
-    if (!tmp) { close(orig_fd); remove(tmpname); return NULL; }
+    if (!tmp) {
+        close(orig_fd);
+        remove(tmpname);
+        return NULL;
+    }
 
     int tmp_fd = fileno(tmp);
     dup2(tmp_fd, STDOUT_FILENO);
@@ -47,7 +54,10 @@ static char* capture_to_temp(void (*fn)(void)) {
     close(orig_fd);
 
     FILE* f = fopen(tmpname, "r");
-    if (!f) { remove(tmpname); return NULL; }
+    if (!f) {
+        remove(tmpname);
+        return NULL;
+    }
     fseek(f, 0, SEEK_END);
     long len = ftell(f);
     fseek(f, 0, SEEK_SET);
@@ -531,7 +541,8 @@ int main(void) {
     register_test("test_output_text_empty", test_func_test_output_text_empty);
     register_test("test_output_text_single_file", test_func_test_output_text_single_file);
     register_test("test_output_text_multiple_files", test_func_test_output_text_multiple_files);
-    register_test("test_output_text_with_ignored_files", test_func_test_output_text_with_ignored_files);
+    register_test("test_output_text_with_ignored_files",
+                  test_func_test_output_text_with_ignored_files);
 
     /* output_text_by_file */
     register_test("test_output_text_by_file_single", test_func_test_output_text_by_file_single);

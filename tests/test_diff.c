@@ -17,7 +17,8 @@ static void free_test_files(DiffFileStats* files, int n_files) {
 }
 
 // Helper to create a DiffConfig for testing
-static DiffConfig make_config(const char* repo, const char* ref1, const char* ref2, unsigned int flags) {
+static DiffConfig make_config(const char* repo, const char* ref1, const char* ref2,
+                              unsigned int flags) {
     DiffConfig cfg;
     cfg.ref1 = ref1;
     cfg.ref2 = ref2;
@@ -46,9 +47,7 @@ TEST(test_same_commit) {
 }
 
 // Test diff_free_files with NULL
-TEST(test_free_null_files) {
-    diff_free_files(NULL, 0);
-}
+TEST(test_free_null_files) { diff_free_files(NULL, 0); }
 
 // Test diff_free_files frees memory correctly
 TEST(test_free_valid_files) {
@@ -117,9 +116,7 @@ TEST(test_extended_all_mode_same_ref) {
 }
 
 // Test diff_free_config with NULL
-TEST(test_free_null_config) {
-    diff_free_config(NULL);
-}
+TEST(test_free_null_config) { diff_free_config(NULL); }
 
 // Test diff_free_config frees owned strings
 TEST(test_free_config_owned_strings) {
@@ -150,7 +147,8 @@ TEST(test_extended_ignore_whitespace) {
 // Test diff_get_stats_extended with DIFF_MODE_RELATIVE between actual different commits
 TEST(test_extended_relative_different_commits) {
     int n_files = 0;
-    DiffConfig cfg = make_config("/Volumes/SN/Developer/rloc", "HEAD~1", "HEAD", DIFF_MODE_RELATIVE);
+    DiffConfig cfg =
+        make_config("/Volumes/SN/Developer/rloc", "HEAD~1", "HEAD", DIFF_MODE_RELATIVE);
     DiffFileStats* result = diff_get_stats_extended(&cfg, &n_files);
 
     // Function should not crash, may return results or NULL depending on repo state
@@ -205,8 +203,10 @@ int main(void) {
     register_test("free_null_config", test_func_test_free_null_config);
     register_test("free_config_owned_strings", test_func_test_free_config_owned_strings);
     register_test("extended_ignore_whitespace", test_func_test_extended_ignore_whitespace);
-    register_test("extended_relative_different_commits", test_func_test_extended_relative_different_commits);
-    register_test("extended_all_mode_different_commits", test_func_test_extended_all_mode_different_commits);
+    register_test("extended_relative_different_commits",
+                  test_func_test_extended_relative_different_commits);
+    register_test("extended_all_mode_different_commits",
+                  test_func_test_extended_all_mode_different_commits);
     run_all_tests();
     return tests_passed == test_count ? 0 : 1;
 }

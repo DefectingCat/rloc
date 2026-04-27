@@ -9,9 +9,9 @@
 
 // Hash table entry for MD5-based deduplication
 typedef struct {
-    uint8_t md5[16];       // Raw MD5 bytes
-    int occupied;          // Entry is in use
-    int deleted;           // Entry was deleted (tombstone)
+    uint8_t md5[16];  // Raw MD5 bytes
+    int occupied;     // Entry is in use
+    int deleted;      // Entry was deleted (tombstone)
 } UniqueEntry;
 
 // Open-addressing hash table for tracking unique files by MD5

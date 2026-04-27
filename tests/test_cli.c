@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+
 #include "../cli.h"
 #include "test_framework.h"
 
@@ -431,8 +432,8 @@ TEST(test_combo_exclude_dir_and_include_lang) {
     CliArgs args;
     reset_args(&args);
 
-    char* argv[] = {"rloc", "--exclude-dir=node_modules,build",
-                    "--include-lang=Python,JavaScript", "."};
+    char* argv[] = {"rloc", "--exclude-dir=node_modules,build", "--include-lang=Python,JavaScript",
+                    "."};
     int ret = cli_parse(4, argv, &args);
 
     ASSERT_EQ(ret, 0);
@@ -466,8 +467,7 @@ TEST(test_combo_exclude_lang_csv_by_file_by_lang) {
     CliArgs args;
     reset_args(&args);
 
-    char* argv[] = {"rloc", "--exclude-lang=C,C++", "--csv",
-                    "--by-file-by-lang", "src"};
+    char* argv[] = {"rloc", "--exclude-lang=C,C++", "--csv", "--by-file-by-lang", "src"};
     int ret = cli_parse(5, argv, &args);
 
     ASSERT_EQ(ret, 0);
@@ -546,10 +546,13 @@ int main(void) {
     register_test("unknown_param_treated_as_file", test_func_test_unknown_param_treated_as_file);
 
     /* Combinations */
-    register_test("combo_exclude_dir_and_include_lang", test_func_test_combo_exclude_dir_and_include_lang);
+    register_test("combo_exclude_dir_and_include_lang",
+                  test_func_test_combo_exclude_dir_and_include_lang);
     register_test("combo_vcs_json_by_file_quiet", test_func_test_combo_vcs_json_by_file_quiet);
-    register_test("combo_exclude_lang_csv_by_file_by_lang", test_func_test_combo_exclude_lang_csv_by_file_by_lang);
-    register_test("combo_follow_links_vcs_auto_yaml", test_func_test_combo_follow_links_vcs_auto_yaml);
+    register_test("combo_exclude_lang_csv_by_file_by_lang",
+                  test_func_test_combo_exclude_lang_csv_by_file_by_lang);
+    register_test("combo_follow_links_vcs_auto_yaml",
+                  test_func_test_combo_follow_links_vcs_auto_yaml);
 
     run_all_tests();
     return (tests_passed == tests_run) ? 0 : 1;

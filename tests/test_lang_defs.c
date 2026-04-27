@@ -102,9 +102,7 @@ static int lang_has_multiple_inline_comments(const Language* lang) {
 /* ------------------------------------------------------------------ */
 /*  Test: total number of built-in languages                          */
 /* ------------------------------------------------------------------ */
-TEST(test_num_languages) {
-    ASSERT_EQ(NUM_LANGUAGES, 27);
-}
+TEST(test_num_languages) { ASSERT_EQ(NUM_LANGUAGES, 27); }
 
 /* ------------------------------------------------------------------ */
 /*  Test: all languages have valid names                              */
@@ -425,9 +423,9 @@ TEST(test_config_comment_rules) {
 /* ------------------------------------------------------------------ */
 TEST(test_string_delimiters_double_and_single) {
     /* Languages with both " and ' delimiters */
-    const char* both_quote[] = {"Python", "JavaScript", "C", "C++", "Java", "Go", "Rust",
-                                "TypeScript", "PHP", "C#", "Swift", "Kotlin", "Shell", "CSS",
-                                "HTML", "SQL", "Vue", "XML"};
+    const char* both_quote[] = {"Python", "JavaScript", "C",    "C++", "Java",  "Go",
+                                "Rust",   "TypeScript", "PHP",  "C#",  "Swift", "Kotlin",
+                                "Shell",  "CSS",        "HTML", "SQL", "Vue",   "XML"};
     for (size_t i = 0; i < sizeof(both_quote) / sizeof(both_quote[0]); i++) {
         const Language* lang = find_lang(both_quote[i]);
         ASSERT_TRUE(lang != NULL);
@@ -457,9 +455,10 @@ TEST(test_string_delimiters_double_only) {
 /* ------------------------------------------------------------------ */
 TEST(test_languages_needing_string_stripping) {
     /* Languages with both filters AND str_delimiters need stripping */
-    const char* needs_strip[] = {"Python", "JavaScript", "C", "C++", "Java", "Go", "Rust",
-                                 "TypeScript", "Ruby", "PHP", "C#", "Swift", "Kotlin", "Shell",
-                                 "Perl", "CSS", "HTML", "SQL", "TOML", "Vue", "XML", "YAML"};
+    const char* needs_strip[] = {"Python", "JavaScript", "C",    "C++", "Java", "Go",
+                                 "Rust",   "TypeScript", "Ruby", "PHP", "C#",   "Swift",
+                                 "Kotlin", "Shell",      "Perl", "CSS", "HTML", "SQL",
+                                 "TOML",   "Vue",        "XML",  "YAML"};
     for (size_t i = 0; i < sizeof(needs_strip) / sizeof(needs_strip[0]); i++) {
         const Language* lang = find_lang(needs_strip[i]);
         ASSERT_TRUE(lang != NULL);

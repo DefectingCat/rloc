@@ -1,11 +1,12 @@
 #include "vcs.h"
-#include "util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#include "util.h"
 
 /* Helper: Check if path is a directory */
 static int is_dir(const char* path) {
@@ -252,13 +253,17 @@ char** vcs_get_files_at_commit(const char* repo_path, const char* commit, int* n
     if (!repo_path || !commit) return NULL;
 
     char cmd[2048];
-    snprintf(cmd, sizeof(cmd), "cd '%s' && git ls-tree -r --name-only '%s' 2>/dev/null", repo_path, commit);
+    snprintf(cmd, sizeof(cmd), "cd '%s' && git ls-tree -r --name-only '%s' 2>/dev/null", repo_path,
+             commit);
 
     FILE* fp = popen(cmd, "r");
     if (!fp) return NULL;
 
     Buffer* buf = buffer_new(65536);
-    if (!buf) { pclose(fp); return NULL; }
+    if (!buf) {
+        pclose(fp);
+        return NULL;
+    }
 
     char read_buf[8192];
     size_t chunk;
@@ -268,7 +273,10 @@ char** vcs_get_files_at_commit(const char* repo_path, const char* commit, int* n
     pclose(fp);
 
     size_t total = buf->size;
-    if (total == 0) { buffer_free(buf); return NULL; }
+    if (total == 0) {
+        buffer_free(buf);
+        return NULL;
+    }
 
     // Count lines
     int count = 0;
@@ -277,10 +285,16 @@ char** vcs_get_files_at_commit(const char* repo_path, const char* commit, int* n
     }
     if (total > 0 && buf->data[total - 1] != '\n') count++;
 
-    if (count == 0) { buffer_free(buf); return NULL; }
+    if (count == 0) {
+        buffer_free(buf);
+        return NULL;
+    }
 
     char** files = malloc(count * sizeof(char*));
-    if (!files) { buffer_free(buf); return NULL; }
+    if (!files) {
+        buffer_free(buf);
+        return NULL;
+    }
 
     int idx = 0;
     char* start = buf->data;
@@ -305,13 +319,14 @@ char** vcs_get_files_at_commit(const char* repo_path, const char* commit, int* n
     return files;
 }
 
-char* vcs_get_file_at_commit(const char* repo_path, const char* commit,
-                              const char* filepath, size_t* content_len) {
+char* vcs_get_file_at_commit(const char* repo_path, const char* commit, const char* filepath,
+                             size_t* content_len) {
     *content_len = 0;
     if (!repo_path || !commit || !filepath) return NULL;
 
     char cmd[2048];
-    snprintf(cmd, sizeof(cmd), "cd '%s' && git show '%s:%s' 2>/dev/null", repo_path, commit, filepath);
+    snprintf(cmd, sizeof(cmd), "cd '%s' && git show '%s:%s' 2>/dev/null", repo_path, commit,
+             filepath);
 
     FILE* fp = popen(cmd, "r");
     if (!fp) return NULL;
@@ -350,7 +365,8 @@ char* vcs_get_file_at_commit(const char* repo_path, const char* commit,
 // Validate that a git reference (commit, branch, tag) is valid in the given repo
 static int vcs_validate_git_ref(const char* repo_path, const char* ref) {
     char cmd[2048];
-    snprintf(cmd, sizeof(cmd), "cd '%s' && git rev-parse --verify '%s' 2>/dev/null", repo_path, ref);
+    snprintf(cmd, sizeof(cmd), "cd '%s' && git rev-parse --verify '%s' 2>/dev/null", repo_path,
+             ref);
     FILE* fp = popen(cmd, "r");
     if (!fp) return 0;
     char buf[64];
@@ -360,7 +376,7 @@ static int vcs_validate_git_ref(const char* repo_path, const char* ref) {
 }
 
 char** vcs_get_changed_files(const char* repo, const char* ref1, const char* ref2,
-                              unsigned int flags, int* n_files) {
+                             unsigned int flags, int* n_files) {
     *n_files = 0;
     if (!repo || !ref1 || !ref2) return NULL;
 
@@ -384,7 +400,8 @@ char** vcs_get_changed_files(const char* repo, const char* ref1, const char* ref
     if (flags & VCS_DIFF_INCLUDE_SUBMODULES) {
         // Append submodule diff output
         cmd_len += snprintf(cmd + cmd_len, sizeof(cmd) - cmd_len,
-                            " && cd '%s' && git diff --name-status -w --ignore-submodules=none '%s' '%s' 2>/dev/null",
+                            " && cd '%s' && git diff --name-status -w --ignore-submodules=none "
+                            "'%s' '%s' 2>/dev/null",
                             repo, ref1, ref2);
     }
 
@@ -392,7 +409,10 @@ char** vcs_get_changed_files(const char* repo, const char* ref1, const char* ref
     if (!fp) return NULL;
 
     Buffer* buf = buffer_new(65536);
-    if (!buf) { pclose(fp); return NULL; }
+    if (!buf) {
+        pclose(fp);
+        return NULL;
+    }
 
     char read_buf[8192];
     size_t chunk;
@@ -402,7 +422,10 @@ char** vcs_get_changed_files(const char* repo, const char* ref1, const char* ref
     pclose(fp);
 
     size_t total = buf->size;
-    if (total == 0) { buffer_free(buf); return NULL; }
+    if (total == 0) {
+        buffer_free(buf);
+        return NULL;
+    }
 
     // Count non-empty lines
     int count = 0;
@@ -419,10 +442,16 @@ char** vcs_get_changed_files(const char* repo, const char* ref1, const char* ref
         count++;
     }
 
-    if (count == 0) { buffer_free(buf); return NULL; }
+    if (count == 0) {
+        buffer_free(buf);
+        return NULL;
+    }
 
     char** files = malloc(count * sizeof(char*));
-    if (!files) { buffer_free(buf); return NULL; }
+    if (!files) {
+        buffer_free(buf);
+        return NULL;
+    }
 
     // De-duplicate lines (submodule mode may produce duplicates)
     int idx = 0;
@@ -479,20 +508,23 @@ char** vcs_get_changed_files(const char* repo, const char* ref1, const char* ref
     return files;
 }
 
-char** vcs_get_diff_files(const char* repo_path, const char* commit1,
-                          const char* commit2, int* n_files) {
+char** vcs_get_diff_files(const char* repo_path, const char* commit1, const char* commit2,
+                          int* n_files) {
     *n_files = 0;
     if (!repo_path || !commit1 || !commit2) return NULL;
 
     char cmd[2048];
-    snprintf(cmd, sizeof(cmd), "cd '%s' && git diff --name-status '%s' '%s' 2>/dev/null",
-             repo_path, commit1, commit2);
+    snprintf(cmd, sizeof(cmd), "cd '%s' && git diff --name-status '%s' '%s' 2>/dev/null", repo_path,
+             commit1, commit2);
 
     FILE* fp = popen(cmd, "r");
     if (!fp) return NULL;
 
     Buffer* buf = buffer_new(65536);
-    if (!buf) { pclose(fp); return NULL; }
+    if (!buf) {
+        pclose(fp);
+        return NULL;
+    }
 
     char read_buf[8192];
     size_t chunk;
@@ -502,17 +534,26 @@ char** vcs_get_diff_files(const char* repo_path, const char* commit1,
     pclose(fp);
 
     size_t total = buf->size;
-    if (total == 0) { buffer_free(buf); return NULL; }
+    if (total == 0) {
+        buffer_free(buf);
+        return NULL;
+    }
 
     int count = 0;
     for (size_t i = 0; i < total; i++) {
         if (buf->data[i] == '\n') count++;
     }
 
-    if (count == 0) { buffer_free(buf); return NULL; }
+    if (count == 0) {
+        buffer_free(buf);
+        return NULL;
+    }
 
     char** files = malloc(count * sizeof(char*));
-    if (!files) { buffer_free(buf); return NULL; }
+    if (!files) {
+        buffer_free(buf);
+        return NULL;
+    }
 
     int idx = 0;
     char* line_start = buf->data;

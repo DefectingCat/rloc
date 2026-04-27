@@ -7,9 +7,9 @@
 
 TEST(test_create_manager) {
     TempManager mgr;
-    int result = temp_manager_create(&mgr, 1024*1024);
+    int result = temp_manager_create(&mgr, 1024 * 1024);
     ASSERT_EQ(result, 0);
-    ASSERT_EQ((int)mgr.max_total_size, 1024*1024);
+    ASSERT_EQ((int)mgr.max_total_size, 1024 * 1024);
     ASSERT_EQ(mgr.n_dirs, 0);
     ASSERT_EQ(mgr.n_files, 0);
     temp_manager_destroy(&mgr);
@@ -17,7 +17,7 @@ TEST(test_create_manager) {
 
 TEST(test_create_dir) {
     TempManager mgr;
-    temp_manager_create(&mgr, 1024*1024*1024);
+    temp_manager_create(&mgr, 1024 * 1024 * 1024);
     char* dir = temp_manager_create_dir(&mgr, "test");
     ASSERT_TRUE(dir != NULL);
     ASSERT_EQ(mgr.n_dirs, 1);
@@ -29,7 +29,7 @@ TEST(test_create_dir) {
 
 TEST(test_create_file) {
     TempManager mgr;
-    temp_manager_create(&mgr, 1024*1024*1024);
+    temp_manager_create(&mgr, 1024 * 1024 * 1024);
     char* file = temp_manager_create_file(&mgr, "test");
     ASSERT_TRUE(file != NULL);
     ASSERT_EQ(mgr.n_files, 1);
@@ -41,7 +41,7 @@ TEST(test_create_file) {
 
 TEST(test_register_dir) {
     TempManager mgr;
-    temp_manager_create(&mgr, 1024*1024*1024);
+    temp_manager_create(&mgr, 1024 * 1024 * 1024);
     char tmpl[] = "/tmp/test_manual.XXXXXX";
     char* dir = mkdtemp(tmpl);
     ASSERT_TRUE(dir != NULL);
@@ -55,7 +55,7 @@ TEST(test_register_dir) {
 
 TEST(test_multiple_items) {
     TempManager mgr;
-    temp_manager_create(&mgr, 1024*1024*1024);
+    temp_manager_create(&mgr, 1024 * 1024 * 1024);
     char* dir1 = temp_manager_create_dir(&mgr, "test1");
     char* dir2 = temp_manager_create_dir(&mgr, "test2");
     char* file1 = temp_manager_create_file(&mgr, "test1");

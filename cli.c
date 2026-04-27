@@ -1,11 +1,12 @@
 #include "cli.h"
-#include "diff.h"
-#include "version.h"
-#include "lang_defs.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "diff.h"
+#include "lang_defs.h"
+#include "version.h"
 
 int cli_parse(int argc, char** argv, CliArgs* args) {
     /* Save config-set list arrays before resetting */
@@ -160,7 +161,7 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
                     }
                     // Parse mode flags after colon
                     const char* mode_str = colon + 1;
-                    args->diff_flags |= DIFF_MODE_RELATIVE; // default for new format
+                    args->diff_flags |= DIFF_MODE_RELATIVE;  // default for new format
                     if (strcmp(mode_str, "all") == 0) {
                         args->diff_flags = DIFF_MODE_ALL;
                     } else if (strcmp(mode_str, "align") == 0) {
@@ -417,24 +418,42 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
             args->staging_dir = strdup(argv[i] + 7);
         } else if (strncmp(argv[i], "--skip-leading=", 15) == 0) {
             char* spec = strdup(argv[i] + 15);
-            if (!spec) { free(args->input_files); return -1; }
+            if (!spec) {
+                free(args->input_files);
+                return -1;
+            }
             char* comma = strchr(spec, ',');
-            if (comma) { *comma = '\0'; }
+            if (comma) {
+                *comma = '\0';
+            }
             args->skip_leading = (int)strtol(spec, NULL, 10);
             if (comma) {
                 char* token = strtok(comma + 1, ",");
                 while (token) {
                     if (args->n_skip_leading_exts == 0) {
                         args->skip_leading_exts = malloc(8 * sizeof(char*));
-                        if (!args->skip_leading_exts) { free(spec); free(args->input_files); return -1; }
+                        if (!args->skip_leading_exts) {
+                            free(spec);
+                            free(args->input_files);
+                            return -1;
+                        }
                     } else if ((args->n_skip_leading_exts & (args->n_skip_leading_exts - 1)) == 0 &&
                                args->n_skip_leading_exts >= 8) {
-                        char** ne = realloc(args->skip_leading_exts, args->n_skip_leading_exts * 2 * sizeof(char*));
-                        if (!ne) { free(spec); free(args->input_files); return -1; }
+                        char** ne = realloc(args->skip_leading_exts,
+                                            args->n_skip_leading_exts * 2 * sizeof(char*));
+                        if (!ne) {
+                            free(spec);
+                            free(args->input_files);
+                            return -1;
+                        }
                         args->skip_leading_exts = ne;
                     }
                     args->skip_leading_exts[args->n_skip_leading_exts] = strdup(token);
-                    if (!args->skip_leading_exts[args->n_skip_leading_exts]) { free(spec); free(args->input_files); return -1; }
+                    if (!args->skip_leading_exts[args->n_skip_leading_exts]) {
+                        free(spec);
+                        free(args->input_files);
+                        return -1;
+                    }
                     args->n_skip_leading_exts++;
                     token = strtok(NULL, ",");
                 }
@@ -500,7 +519,10 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
         } else if (strncmp(argv[i], "--ignore-regex=", 15) == 0) {
             // Format: LANG|REGEX or *|REGEX
             char* spec = strdup(argv[i] + 15);
-            if (!spec) { free(args->input_files); return -1; }
+            if (!spec) {
+                free(args->input_files);
+                return -1;
+            }
             char* sep = strchr(spec, '|');
             if (sep) {
                 *sep = '\0';
@@ -508,12 +530,21 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
                     args->ignore_regex_langs = malloc(8 * sizeof(char*));
                     args->ignore_regex_patterns = malloc(8 * sizeof(char*));
                     if (!args->ignore_regex_langs || !args->ignore_regex_patterns) {
-                        free(spec); free(args->input_files); return -1;
+                        free(spec);
+                        free(args->input_files);
+                        return -1;
                     }
-                } else if ((args->n_ignore_regex & (args->n_ignore_regex - 1)) == 0 && args->n_ignore_regex >= 8) {
-                    char** nl = realloc(args->ignore_regex_langs, args->n_ignore_regex * 2 * sizeof(char*));
-                    char** np = realloc(args->ignore_regex_patterns, args->n_ignore_regex * 2 * sizeof(char*));
-                    if (!nl || !np) { free(spec); free(args->input_files); return -1; }
+                } else if ((args->n_ignore_regex & (args->n_ignore_regex - 1)) == 0 &&
+                           args->n_ignore_regex >= 8) {
+                    char** nl =
+                        realloc(args->ignore_regex_langs, args->n_ignore_regex * 2 * sizeof(char*));
+                    char** np = realloc(args->ignore_regex_patterns,
+                                        args->n_ignore_regex * 2 * sizeof(char*));
+                    if (!nl || !np) {
+                        free(spec);
+                        free(args->input_files);
+                        return -1;
+                    }
                     args->ignore_regex_langs = nl;
                     args->ignore_regex_patterns = np;
                 }
@@ -527,7 +558,10 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
         } else if (strncmp(argv[i], "--script-lang=", 14) == 0) {
             // Format: LANG,S
             char* spec = strdup(argv[i] + 14);
-            if (!spec) { free(args->input_files); return -1; }
+            if (!spec) {
+                free(args->input_files);
+                return -1;
+            }
             char* comma = strchr(spec, ',');
             if (comma) {
                 *comma = '\0';
@@ -535,12 +569,21 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
                     args->script_langs = malloc(8 * sizeof(char*));
                     args->script_names = malloc(8 * sizeof(char*));
                     if (!args->script_langs || !args->script_names) {
-                        free(spec); free(args->input_files); return -1;
+                        free(spec);
+                        free(args->input_files);
+                        return -1;
                     }
-                } else if ((args->n_script_lang & (args->n_script_lang - 1)) == 0 && args->n_script_lang >= 8) {
-                    char** nl = realloc(args->script_langs, args->n_script_lang * 2 * sizeof(char*));
-                    char** ns = realloc(args->script_names, args->n_script_lang * 2 * sizeof(char*));
-                    if (!nl || !ns) { free(spec); free(args->input_files); return -1; }
+                } else if ((args->n_script_lang & (args->n_script_lang - 1)) == 0 &&
+                           args->n_script_lang >= 8) {
+                    char** nl =
+                        realloc(args->script_langs, args->n_script_lang * 2 * sizeof(char*));
+                    char** ns =
+                        realloc(args->script_names, args->n_script_lang * 2 * sizeof(char*));
+                    if (!nl || !ns) {
+                        free(spec);
+                        free(args->input_files);
+                        return -1;
+                    }
                     args->script_langs = nl;
                     args->script_names = ns;
                 }
@@ -576,8 +619,10 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
         }
     }
 
-    // Return error if no input files and no flags set (but allow --list-file to provide files later)
-    if (args->n_input_files == 0 && !args->show_help && !args->show_version && !args->show_lang && !args->show_ext && !args->list_file && !args->explain_lang) {
+    // Return error if no input files and no flags set (but allow --list-file to provide files
+    // later)
+    if (args->n_input_files == 0 && !args->show_help && !args->show_version && !args->show_lang &&
+        !args->show_ext && !args->list_file && !args->explain_lang) {
         free(args->input_files);
         args->input_files = NULL;
         return -1;
@@ -695,22 +740,67 @@ void cli_free(CliArgs* args) {
         args->skip_leading_exts = NULL;
     }
     args->n_skip_leading_exts = 0;
-    if (args->config_file) { free(args->config_file); args->config_file = NULL; }
-    if (args->show_lang_arg) { free(args->show_lang_arg); args->show_lang_arg = NULL; }
-    if (args->show_ext_arg) { free(args->show_ext_arg); args->show_ext_arg = NULL; }
-    if (args->unique_file) { free(args->unique_file); args->unique_file = NULL; }
-    if (args->ignored_file) { free(args->ignored_file); args->ignored_file = NULL; }
-    if (args->batch_input) { free(args->batch_input); args->batch_input = NULL; }
-    if (args->extract_with) { free(args->extract_with); args->extract_with = NULL; }
-    if (args->skip_archive) { free(args->skip_archive); args->skip_archive = NULL; }
-    if (args->git_ref) { free(args->git_ref); args->git_ref = NULL; }
-    if (args->list_file) { free(args->list_file); args->list_file = NULL; }
-    if (args->force_lang) { free(args->force_lang); args->force_lang = NULL; }
+    if (args->config_file) {
+        free(args->config_file);
+        args->config_file = NULL;
+    }
+    if (args->show_lang_arg) {
+        free(args->show_lang_arg);
+        args->show_lang_arg = NULL;
+    }
+    if (args->show_ext_arg) {
+        free(args->show_ext_arg);
+        args->show_ext_arg = NULL;
+    }
+    if (args->unique_file) {
+        free(args->unique_file);
+        args->unique_file = NULL;
+    }
+    if (args->ignored_file) {
+        free(args->ignored_file);
+        args->ignored_file = NULL;
+    }
+    if (args->batch_input) {
+        free(args->batch_input);
+        args->batch_input = NULL;
+    }
+    if (args->extract_with) {
+        free(args->extract_with);
+        args->extract_with = NULL;
+    }
+    if (args->skip_archive) {
+        free(args->skip_archive);
+        args->skip_archive = NULL;
+    }
+    if (args->git_ref) {
+        free(args->git_ref);
+        args->git_ref = NULL;
+    }
+    if (args->list_file) {
+        free(args->list_file);
+        args->list_file = NULL;
+    }
+    if (args->force_lang) {
+        free(args->force_lang);
+        args->force_lang = NULL;
+    }
     // Phase 4 cleanup
-    if (args->strip_comments) { free(args->strip_comments); args->strip_comments = NULL; }
-    if (args->strip_code) { free(args->strip_code); args->strip_code = NULL; }
-    if (args->include_content) { free(args->include_content); args->include_content = NULL; }
-    if (args->exclude_content) { free(args->exclude_content); args->exclude_content = NULL; }
+    if (args->strip_comments) {
+        free(args->strip_comments);
+        args->strip_comments = NULL;
+    }
+    if (args->strip_code) {
+        free(args->strip_code);
+        args->strip_code = NULL;
+    }
+    if (args->include_content) {
+        free(args->include_content);
+        args->include_content = NULL;
+    }
+    if (args->exclude_content) {
+        free(args->exclude_content);
+        args->exclude_content = NULL;
+    }
     if (args->ignore_regex_langs) {
         for (int i = 0; i < args->n_ignore_regex; i++) free(args->ignore_regex_langs[i]);
         free(args->ignore_regex_langs);
@@ -722,7 +812,10 @@ void cli_free(CliArgs* args) {
         args->ignore_regex_patterns = NULL;
     }
     args->n_ignore_regex = 0;
-    if (args->lang_no_ext) { free(args->lang_no_ext); args->lang_no_ext = NULL; }
+    if (args->lang_no_ext) {
+        free(args->lang_no_ext);
+        args->lang_no_ext = NULL;
+    }
     if (args->script_langs) {
         for (int i = 0; i < args->n_script_lang; i++) free(args->script_langs[i]);
         free(args->script_langs);
@@ -734,10 +827,22 @@ void cli_free(CliArgs* args) {
         args->script_names = NULL;
     }
     args->n_script_lang = 0;
-    if (args->explain_lang) { free(args->explain_lang); args->explain_lang = NULL; }
-    if (args->categorized_file) { free(args->categorized_file); args->categorized_file = NULL; }
-    if (args->counted_file) { free(args->counted_file); args->counted_file = NULL; }
-    if (args->found_file) { free(args->found_file); args->found_file = NULL; }
+    if (args->explain_lang) {
+        free(args->explain_lang);
+        args->explain_lang = NULL;
+    }
+    if (args->categorized_file) {
+        free(args->categorized_file);
+        args->categorized_file = NULL;
+    }
+    if (args->counted_file) {
+        free(args->counted_file);
+        args->counted_file = NULL;
+    }
+    if (args->found_file) {
+        free(args->found_file);
+        args->found_file = NULL;
+    }
 }
 
 void cli_print_help(const char* prog_name) {
@@ -818,7 +923,8 @@ void cli_print_help(const char* prog_name) {
 }
 
 void cli_print_version(void) {
-    printf("rloc %s (%d languages, built on %s %s)\n", RLOC_VERSION, NUM_LANGUAGES, __DATE__, __TIME__);
+    printf("rloc %s (%d languages, built on %s %s)\n", RLOC_VERSION, NUM_LANGUAGES, __DATE__,
+           __TIME__);
 }
 
 /* Pre-scan argv for --config= and --no-config only.

@@ -2,11 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
-#include "../config.h"
 #include "../cli.h"
+#include "../config.h"
 #include "test_framework.h"
 
 /* Create a temporary config file with given content */
@@ -32,15 +32,13 @@ static char* create_temp_config(const char* content) {
 }
 
 /* Clean up temporary file */
-static void remove_temp_config(const char* path) {
-    unlink(path);
-}
+static void remove_temp_config(const char* path) { unlink(path); }
 
 /* Reset CliArgs to default state */
 static void reset_args(CliArgs* args) {
     memset(args, 0, sizeof(CliArgs));
     args->output_format = FORMAT_TEXT;
-    args->max_temp_size = 1024 * 1024 * 1024;  /* Default 1GB */
+    args->max_temp_size = 1024 * 1024 * 1024; /* Default 1GB */
     args->max_file_size_mb = 100;
     args->progress_rate = 100;
     args->max_archive_depth = 3;
@@ -318,7 +316,7 @@ TEST(test_load_file_not_found) {
     reset_args(&args);
 
     int ret = config_load("/nonexistent/path/to/config.txt", &args);
-    ASSERT_EQ(ret, 0);  /* File not found is OK */
+    ASSERT_EQ(ret, 0); /* File not found is OK */
 }
 
 TEST(test_load_whitespace_handling) {
@@ -359,7 +357,7 @@ TEST(test_load_duplicate_values_override) {
     int ret = config_load(path, &args);
     ASSERT_EQ(ret, 0);
 
-    ASSERT_EQ(args.max_file_size_mb, 200);  /* Last value wins */
+    ASSERT_EQ(args.max_file_size_mb, 200); /* Last value wins */
     ASSERT_EQ(args.quiet, 1);
 
     remove_temp_config(path);
@@ -399,10 +397,12 @@ TEST(test_get_default_path_no_home) {
 
 int main(void) {
     register_test("test_load_empty_file", test_func_test_load_empty_file);
-    register_test("test_load_comments_and_blank_lines", test_func_test_load_comments_and_blank_lines);
+    register_test("test_load_comments_and_blank_lines",
+                  test_func_test_load_comments_and_blank_lines);
     register_test("test_load_single_value_options", test_func_test_load_single_value_options);
     register_test("test_load_value_options", test_func_test_load_value_options);
-    register_test("test_load_list_options_comma_separated", test_func_test_load_list_options_comma_separated);
+    register_test("test_load_list_options_comma_separated",
+                  test_func_test_load_list_options_comma_separated);
     register_test("test_load_vcs_svn", test_func_test_load_vcs_svn);
     register_test("test_load_vcs_auto", test_func_test_load_vcs_auto);
     register_test("test_load_csv_output_format", test_func_test_load_csv_output_format);
@@ -412,7 +412,8 @@ int main(void) {
     register_test("test_load_html_output_format", test_func_test_load_html_output_format);
     register_test("test_load_file_not_found", test_func_test_load_file_not_found);
     register_test("test_load_whitespace_handling", test_func_test_load_whitespace_handling);
-    register_test("test_load_duplicate_values_override", test_func_test_load_duplicate_values_override);
+    register_test("test_load_duplicate_values_override",
+                  test_func_test_load_duplicate_values_override);
     register_test("test_get_default_path", test_func_test_get_default_path);
     register_test("test_get_default_path_no_home", test_func_test_get_default_path_no_home);
 

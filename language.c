@@ -289,8 +289,11 @@ void explain_language(const char* lang_name) {
                     printf("       Removes inline comments (from pattern to end of line)\n");
                     break;
                 case FILTER_REMOVE_BETWEEN:
-                    printf("  [%zu] REMOVE_BETWEEN: open='%s', close='%s'\n", i + 1, f->pattern_open, f->pattern_close);
-                    printf("       Removes content between open and close patterns (multi-line blocks)\n");
+                    printf("  [%zu] REMOVE_BETWEEN: open='%s', close='%s'\n", i + 1,
+                           f->pattern_open, f->pattern_close);
+                    printf(
+                        "       Removes content between open and close patterns (multi-line "
+                        "blocks)\n");
                     break;
             }
         }

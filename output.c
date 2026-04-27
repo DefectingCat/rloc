@@ -1,9 +1,10 @@
 #include "output.h"
-#include "version.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "version.h"
 
 #define MAX_LANGUAGES 50
 
@@ -184,8 +185,8 @@ void output_text_by_file(const FileStats* files, int n_files, double elapsed_sec
     }
 
     double files_per_sec = (elapsed_sec > 0) ? (n_valid / elapsed_sec) : 0.0;
-    printf("https://github.com/rloc/rloc v %s  T=%.2f s (%.1f files/s)\n", RLOC_VERSION, elapsed_sec,
-           files_per_sec);
+    printf("https://github.com/rloc/rloc v %s  T=%.2f s (%.1f files/s)\n", RLOC_VERSION,
+           elapsed_sec, files_per_sec);
     printf("\n");
 
     printf("%-40s %10s %10s %10s %10s\n", "File", "blank", "comment", "code", "language");
@@ -391,22 +392,38 @@ static void json_write_string(FILE* fp, const char* str) {
     fputc('"', fp);
     for (const char* p = str; *p; p++) {
         switch (*p) {
-            case '"':  fputs("\\\"", fp); break;
-            case '\\': fputs("\\\\", fp); break;
-            case '\b': fputs("\\b", fp);  break;
-            case '\f': fputs("\\f", fp);  break;
-            case '\n': fputs("\\n", fp);  break;
-            case '\r': fputs("\\r", fp);  break;
-            case '\t': fputs("\\t", fp);  break;
-            default:   fputc(*p, fp);     break;
+            case '"':
+                fputs("\\\"", fp);
+                break;
+            case '\\':
+                fputs("\\\\", fp);
+                break;
+            case '\b':
+                fputs("\\b", fp);
+                break;
+            case '\f':
+                fputs("\\f", fp);
+                break;
+            case '\n':
+                fputs("\\n", fp);
+                break;
+            case '\r':
+                fputs("\\r", fp);
+                break;
+            case '\t':
+                fputs("\\t", fp);
+                break;
+            default:
+                fputc(*p, fp);
+                break;
         }
     }
     fputc('"', fp);
 }
 
 /* Output file alignment table (cloc --diff-alignment compatible) */
-void output_alignment(const AlignmentEntry* entries, int n_entries,
-                      const char* ref1, const char* ref2, int json_output) {
+void output_alignment(const AlignmentEntry* entries, int n_entries, const char* ref1,
+                      const char* ref2, int json_output) {
     if (json_output) {
         output_alignment_json(entries, n_entries, ref1, ref2);
         return;
@@ -420,32 +437,39 @@ void output_alignment(const AlignmentEntry* entries, int n_entries,
         total_added += entries[i].added;
         total_removed += entries[i].removed;
         switch (entries[i].type) {
-            case ALIGN_ADDED:    n_added++;    break;
-            case ALIGN_REMOVED:  n_removed++;  break;
-            case ALIGN_MODIFIED: n_modified++; break;
-            case ALIGN_IDENTICAL: n_identical++; break;
+            case ALIGN_ADDED:
+                n_added++;
+                break;
+            case ALIGN_REMOVED:
+                n_removed++;
+                break;
+            case ALIGN_MODIFIED:
+                n_modified++;
+                break;
+            case ALIGN_IDENTICAL:
+                n_identical++;
+                break;
         }
     }
 
     int n_files_changed = n_added + n_removed + n_modified;
 
     printf("Comparing %s..%s\n\n", ref1, ref2);
-    printf("%d file%s, %d lines added, %d lines removed\n",
-           n_files_changed, n_files_changed != 1 ? "s" : "",
-           total_added, total_removed);
-    if (n_added > 0)   printf("  %d new\n", n_added);
+    printf("%d file%s, %d lines added, %d lines removed\n", n_files_changed,
+           n_files_changed != 1 ? "s" : "", total_added, total_removed);
+    if (n_added > 0) printf("  %d new\n", n_added);
     if (n_removed > 0) printf("  %d removed\n", n_removed);
     if (n_modified > 0) printf("  %d modified\n", n_modified);
     if (n_identical > 0) printf("  %d identical\n", n_identical);
     printf("\n");
 
     /* Determine max file path width for alignment */
-    int max_path_len = 10;  /* minimum width */
+    int max_path_len = 10; /* minimum width */
     for (int i = 0; i < n_entries; i++) {
         int len = (int)strlen(entries[i].filepath);
         if (len > max_path_len) max_path_len = len;
     }
-    if (max_path_len > 50) max_path_len = 50;  /* cap to keep line reasonable */
+    if (max_path_len > 50) max_path_len = 50; /* cap to keep line reasonable */
 
     int path_width = max_path_len + 2;
 
@@ -465,8 +489,8 @@ void output_alignment(const AlignmentEntry* entries, int n_entries,
             has_added_header = 1;
         }
         const char* lang = entries[i].language ? entries[i].language : "(none)";
-        printf("%-*s %10d %10d  %s\n", path_width,
-               entries[i].filepath, entries[i].added, entries[i].removed, lang);
+        printf("%-*s %10d %10d  %s\n", path_width, entries[i].filepath, entries[i].added,
+               entries[i].removed, lang);
     }
 
     /* Removed files */
@@ -477,8 +501,8 @@ void output_alignment(const AlignmentEntry* entries, int n_entries,
             has_removed_header = 1;
         }
         const char* lang = entries[i].language ? entries[i].language : "(none)";
-        printf("%-*s %10d %10d  %s\n", path_width,
-               entries[i].filepath, entries[i].added, entries[i].removed, lang);
+        printf("%-*s %10d %10d  %s\n", path_width, entries[i].filepath, entries[i].added,
+               entries[i].removed, lang);
     }
 
     /* Modified files */
@@ -489,8 +513,8 @@ void output_alignment(const AlignmentEntry* entries, int n_entries,
             has_modified_header = 1;
         }
         const char* lang = entries[i].language ? entries[i].language : "(none)";
-        printf("%-*s %10d %10d  %s\n", path_width,
-               entries[i].filepath, entries[i].added, entries[i].removed, lang);
+        printf("%-*s %10d %10d  %s\n", path_width, entries[i].filepath, entries[i].added,
+               entries[i].removed, lang);
     }
 
     /* Identical files (only if --identical was set) */
@@ -498,21 +522,20 @@ void output_alignment(const AlignmentEntry* entries, int n_entries,
         printf("--- identical\n");
         for (int i = 0; i < n_entries; i++) {
             if (entries[i].type != ALIGN_IDENTICAL) continue;
-            printf("%-*s %10d %10d  %s\n", path_width,
-                   entries[i].filepath, entries[i].added, entries[i].removed,
-                   entries[i].language ? entries[i].language : "(identical)");
+            printf("%-*s %10d %10d  %s\n", path_width, entries[i].filepath, entries[i].added,
+                   entries[i].removed, entries[i].language ? entries[i].language : "(identical)");
         }
     }
 
     for (int i = 0; i < path_width + 24; i++) fputc('-', stdout);
     fputc('\n', stdout);
-    printf("SUM: %d files, %d lines added, %d lines removed\n",
-           n_files_changed, total_added, total_removed);
+    printf("SUM: %d files, %d lines added, %d lines removed\n", n_files_changed, total_added,
+           total_removed);
 }
 
 /* Output file alignment table in JSON format */
-void output_alignment_json(const AlignmentEntry* entries, int n_entries,
-                           const char* ref1, const char* ref2) {
+void output_alignment_json(const AlignmentEntry* entries, int n_entries, const char* ref1,
+                           const char* ref2) {
     int total_added = 0, total_removed = 0;
     int n_added = 0, n_removed = 0, n_modified = 0, n_identical = 0;
 
@@ -520,10 +543,18 @@ void output_alignment_json(const AlignmentEntry* entries, int n_entries,
         total_added += entries[i].added;
         total_removed += entries[i].removed;
         switch (entries[i].type) {
-            case ALIGN_ADDED:    n_added++;    break;
-            case ALIGN_REMOVED:  n_removed++;  break;
-            case ALIGN_MODIFIED: n_modified++; break;
-            case ALIGN_IDENTICAL: n_identical++; break;
+            case ALIGN_ADDED:
+                n_added++;
+                break;
+            case ALIGN_REMOVED:
+                n_removed++;
+                break;
+            case ALIGN_MODIFIED:
+                n_modified++;
+                break;
+            case ALIGN_IDENTICAL:
+                n_identical++;
+                break;
         }
     }
 
@@ -549,16 +580,26 @@ void output_alignment_json(const AlignmentEntry* entries, int n_entries,
 
         const char* type_str;
         switch (entries[i].type) {
-            case ALIGN_ADDED:    type_str = "added";    break;
-            case ALIGN_REMOVED:  type_str = "removed";  break;
-            case ALIGN_MODIFIED: type_str = "modified"; break;
-            case ALIGN_IDENTICAL: type_str = "identical"; break;
-            default:             type_str = "unknown";  break;
+            case ALIGN_ADDED:
+                type_str = "added";
+                break;
+            case ALIGN_REMOVED:
+                type_str = "removed";
+                break;
+            case ALIGN_MODIFIED:
+                type_str = "modified";
+                break;
+            case ALIGN_IDENTICAL:
+                type_str = "identical";
+                break;
+            default:
+                type_str = "unknown";
+                break;
         }
 
         const char* lang = entries[i].language
-            ? entries[i].language
-            : (entries[i].type == ALIGN_IDENTICAL ? "(identical)" : "(none)");
+                               ? entries[i].language
+                               : (entries[i].type == ALIGN_IDENTICAL ? "(identical)" : "(none)");
 
         printf("    {\n");
         printf("      \"name\"    : ");
@@ -667,15 +708,45 @@ static void xml_escape(const char* str, char* buf, size_t buf_size) {
     size_t j = 0;
     for (size_t i = 0; str[i] && j < buf_size - 1; i++) {
         if (str[i] == '&') {
-            if (j + 5 < buf_size) { buf[j++] = '&'; buf[j++] = 'a'; buf[j++] = 'm'; buf[j++] = 'p'; buf[j++] = ';'; }
+            if (j + 5 < buf_size) {
+                buf[j++] = '&';
+                buf[j++] = 'a';
+                buf[j++] = 'm';
+                buf[j++] = 'p';
+                buf[j++] = ';';
+            }
         } else if (str[i] == '<') {
-            if (j + 4 < buf_size) { buf[j++] = '&'; buf[j++] = 'l'; buf[j++] = 't'; buf[j++] = ';'; }
+            if (j + 4 < buf_size) {
+                buf[j++] = '&';
+                buf[j++] = 'l';
+                buf[j++] = 't';
+                buf[j++] = ';';
+            }
         } else if (str[i] == '>') {
-            if (j + 4 < buf_size) { buf[j++] = '&'; buf[j++] = 'g'; buf[j++] = 't'; buf[j++] = ';'; }
+            if (j + 4 < buf_size) {
+                buf[j++] = '&';
+                buf[j++] = 'g';
+                buf[j++] = 't';
+                buf[j++] = ';';
+            }
         } else if (str[i] == '"') {
-            if (j + 6 < buf_size) { buf[j++] = '&'; buf[j++] = 'q'; buf[j++] = 'u'; buf[j++] = 'o'; buf[j++] = 't'; buf[j++] = ';'; }
+            if (j + 6 < buf_size) {
+                buf[j++] = '&';
+                buf[j++] = 'q';
+                buf[j++] = 'u';
+                buf[j++] = 'o';
+                buf[j++] = 't';
+                buf[j++] = ';';
+            }
         } else if (str[i] == '\'') {
-            if (j + 6 < buf_size) { buf[j++] = '&'; buf[j++] = 'a'; buf[j++] = 'p'; buf[j++] = 'o'; buf[j++] = 's'; buf[j++] = ';'; }
+            if (j + 6 < buf_size) {
+                buf[j++] = '&';
+                buf[j++] = 'a';
+                buf[j++] = 'p';
+                buf[j++] = 'o';
+                buf[j++] = 's';
+                buf[j++] = ';';
+            }
         } else {
             buf[j++] = str[i];
         }
@@ -697,7 +768,8 @@ void output_xml(const FileStats* files, int n_files, double elapsed_sec) {
                      &total_code);
 
     double files_per_sec = (elapsed_sec > 0) ? (n_valid / elapsed_sec) : 0.0;
-    double lines_per_sec = (elapsed_sec > 0) ? ((total_blank + total_comment + total_code) / elapsed_sec) : 0.0;
+    double lines_per_sec =
+        (elapsed_sec > 0) ? ((total_blank + total_comment + total_code) / elapsed_sec) : 0.0;
 
     printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     printf("<results>\n");
@@ -716,11 +788,12 @@ void output_xml(const FileStats* files, int n_files, double elapsed_sec) {
     for (int i = 0; i < n_languages; i++) {
         xml_escape(lang_stats[i].name, escaped, sizeof(escaped));
         printf("    <language name=\"%s\" files=\"%d\" blank=\"%d\" comment=\"%d\" code=\"%d\"/>\n",
-               escaped, lang_stats[i].files, lang_stats[i].blank, lang_stats[i].comment, lang_stats[i].code);
+               escaped, lang_stats[i].files, lang_stats[i].blank, lang_stats[i].comment,
+               lang_stats[i].code);
     }
 
-    printf("    <total sum_files=\"%d\" blank=\"%d\" comment=\"%d\" code=\"%d\"/>\n",
-           total_files, total_blank, total_comment, total_code);
+    printf("    <total sum_files=\"%d\" blank=\"%d\" comment=\"%d\" code=\"%d\"/>\n", total_files,
+           total_blank, total_comment, total_code);
     printf("  </languages>\n");
     printf("</results>\n");
 }
@@ -758,11 +831,12 @@ void output_xml_by_file(const FileStats* files, int n_files, double elapsed_sec)
         xml_escape(files[i].filepath, escaped_path, sizeof(escaped_path));
         xml_escape(files[i].lang->name, escaped_lang, sizeof(escaped_lang));
         printf("    <file path=\"%s\" language=\"%s\" blank=\"%d\" comment=\"%d\" code=\"%d\"/>\n",
-               escaped_path, escaped_lang, files[i].counts.blank, files[i].counts.comment, files[i].counts.code);
+               escaped_path, escaped_lang, files[i].counts.blank, files[i].counts.comment,
+               files[i].counts.code);
     }
 
-    printf("    <total blank=\"%d\" comment=\"%d\" code=\"%d\"/>\n",
-           total_blank, total_comment, total_code);
+    printf("    <total blank=\"%d\" comment=\"%d\" code=\"%d\"/>\n", total_blank, total_comment,
+           total_code);
     printf("  </files>\n");
     printf("</results>\n");
 }
@@ -797,17 +871,24 @@ void output_html(const FileStats* files, int n_files, double elapsed_sec) {
     printf("</head>\n");
     printf("<body>\n");
     printf("<h1>rloc Report v%s</h1>\n", RLOC_VERSION);
-    printf("<p>Processed %d files in %.2f seconds (%.1f files/s)</p>\n", n_valid, elapsed_sec, files_per_sec);
+    printf("<p>Processed %d files in %.2f seconds (%.1f files/s)</p>\n", n_valid, elapsed_sec,
+           files_per_sec);
     printf("<table>\n");
-    printf("<tr><th class=\"lang\">Language</th><th>files</th><th>blank</th><th>comment</th><th>code</th></tr>\n");
+    printf(
+        "<tr><th "
+        "class=\"lang\">Language</th><th>files</th><th>blank</th><th>comment</th><th>code</th></"
+        "tr>\n");
 
     for (int i = 0; i < n_languages; i++) {
         printf("<tr><td class=\"lang\">%s</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td></tr>\n",
-               lang_stats[i].name, lang_stats[i].files, lang_stats[i].blank, lang_stats[i].comment, lang_stats[i].code);
+               lang_stats[i].name, lang_stats[i].files, lang_stats[i].blank, lang_stats[i].comment,
+               lang_stats[i].code);
     }
 
-    printf("<tr class=\"sum\"><td class=\"lang\">SUM</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td></tr>\n",
-           total_files, total_blank, total_comment, total_code);
+    printf(
+        "<tr class=\"sum\"><td "
+        "class=\"lang\">SUM</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td></tr>\n",
+        total_files, total_blank, total_comment, total_code);
     printf("</table>\n");
     printf("</body>\n");
     printf("</html>\n");
@@ -844,18 +925,26 @@ void output_html_by_file(const FileStats* files, int n_files, double elapsed_sec
     printf("</head>\n");
     printf("<body>\n");
     printf("<h1>rloc Report v%s</h1>\n", RLOC_VERSION);
-    printf("<p>Processed %d files in %.2f seconds (%.1f files/s)</p>\n", n_valid, elapsed_sec, files_per_sec);
+    printf("<p>Processed %d files in %.2f seconds (%.1f files/s)</p>\n", n_valid, elapsed_sec,
+           files_per_sec);
     printf("<table>\n");
-    printf("<tr><th class=\"file\">File</th><th class=\"lang\">Language</th><th>blank</th><th>comment</th><th>code</th></tr>\n");
+    printf(
+        "<tr><th class=\"file\">File</th><th "
+        "class=\"lang\">Language</th><th>blank</th><th>comment</th><th>code</th></tr>\n");
 
     for (int i = 0; i < n_files; i++) {
         if (files[i].lang == NULL) continue;
-        printf("<tr><td class=\"file\">%s</td><td class=\"lang\">%s</td><td>%d</td><td>%d</td><td>%d</td></tr>\n",
-               files[i].filepath, files[i].lang->name, files[i].counts.blank, files[i].counts.comment, files[i].counts.code);
+        printf(
+            "<tr><td class=\"file\">%s</td><td "
+            "class=\"lang\">%s</td><td>%d</td><td>%d</td><td>%d</td></tr>\n",
+            files[i].filepath, files[i].lang->name, files[i].counts.blank, files[i].counts.comment,
+            files[i].counts.code);
     }
 
-    printf("<tr class=\"sum\"><td class=\"file\">SUM</td><td class=\"lang\"></td><td>%d</td><td>%d</td><td>%d</td></tr>\n",
-           total_blank, total_comment, total_code);
+    printf(
+        "<tr class=\"sum\"><td class=\"file\">SUM</td><td "
+        "class=\"lang\"></td><td>%d</td><td>%d</td><td>%d</td></tr>\n",
+        total_blank, total_comment, total_code);
     printf("</table>\n");
     printf("</body>\n");
     printf("</html>\n");
@@ -866,7 +955,10 @@ static void sql_escape(const char* str, char* buf, size_t buf_size) {
     size_t j = 0;
     for (size_t i = 0; str[i] && j < buf_size - 1; i++) {
         if (str[i] == '\'') {
-            if (j + 2 < buf_size) { buf[j++] = '\''; buf[j++] = '\''; }
+            if (j + 2 < buf_size) {
+                buf[j++] = '\'';
+                buf[j++] = '\'';
+            }
         } else {
             buf[j++] = str[i];
         }
@@ -909,22 +1001,28 @@ void output_sql(const FileStats* files, int n_files, double elapsed_sec, const c
     printf("    nCode INTEGER\n");
     printf(");\n\n");
 
-    printf("INSERT INTO metadata (id, timestamp, project, elapsed_s) VALUES (1, datetime('now'), '%s', %.3f);\n",
-           escaped_project, elapsed_sec);
+    printf(
+        "INSERT INTO metadata (id, timestamp, project, elapsed_s) VALUES (1, datetime('now'), "
+        "'%s', %.3f);\n",
+        escaped_project, elapsed_sec);
 
     char escaped_lang[256];
     for (int i = 0; i < n_languages; i++) {
         sql_escape(lang_stats[i].name, escaped_lang, sizeof(escaped_lang));
-        printf("INSERT INTO results (id, project, language, nFiles, nBlank, nComment, nCode) VALUES (1, '%s', '%s', %d, %d, %d, %d);\n",
-               escaped_project, escaped_lang, lang_stats[i].files, lang_stats[i].blank, lang_stats[i].comment, lang_stats[i].code);
+        printf(
+            "INSERT INTO results (id, project, language, nFiles, nBlank, nComment, nCode) VALUES "
+            "(1, '%s', '%s', %d, %d, %d, %d);\n",
+            escaped_project, escaped_lang, lang_stats[i].files, lang_stats[i].blank,
+            lang_stats[i].comment, lang_stats[i].code);
     }
 
-    printf("-- SUM: %d files, %d blank, %d comment, %d code\n",
-           total_files, total_blank, total_comment, total_code);
+    printf("-- SUM: %d files, %d blank, %d comment, %d code\n", total_files, total_blank,
+           total_comment, total_code);
 }
 
 /* Output SQL with per-file breakdown */
-void output_sql_by_file(const FileStats* files, int n_files, double elapsed_sec, const char* project) {
+void output_sql_by_file(const FileStats* files, int n_files, double elapsed_sec,
+                        const char* project) {
     char escaped_project[256];
     sql_escape(project ? project : "rloc", escaped_project, sizeof(escaped_project));
 
@@ -948,8 +1046,10 @@ void output_sql_by_file(const FileStats* files, int n_files, double elapsed_sec,
     printf("    nCode INTEGER\n");
     printf(");\n\n");
 
-    printf("INSERT INTO metadata (id, timestamp, project, elapsed_s) VALUES (1, datetime('now'), '%s', %.3f);\n",
-           escaped_project, elapsed_sec);
+    printf(
+        "INSERT INTO metadata (id, timestamp, project, elapsed_s) VALUES (1, datetime('now'), "
+        "'%s', %.3f);\n",
+        escaped_project, elapsed_sec);
 
     char escaped_path[512];
     char escaped_lang[256];
@@ -957,8 +1057,11 @@ void output_sql_by_file(const FileStats* files, int n_files, double elapsed_sec,
         if (files[i].lang == NULL) continue;
         sql_escape(files[i].filepath, escaped_path, sizeof(escaped_path));
         sql_escape(files[i].lang->name, escaped_lang, sizeof(escaped_lang));
-        printf("INSERT INTO files (id, project, filepath, language, nBlank, nComment, nCode) VALUES (1, '%s', '%s', '%s', %d, %d, %d);\n",
-               escaped_project, escaped_path, escaped_lang, files[i].counts.blank, files[i].counts.comment, files[i].counts.code);
+        printf(
+            "INSERT INTO files (id, project, filepath, language, nBlank, nComment, nCode) VALUES "
+            "(1, '%s', '%s', '%s', %d, %d, %d);\n",
+            escaped_project, escaped_path, escaped_lang, files[i].counts.blank,
+            files[i].counts.comment, files[i].counts.code);
     }
 
     printf("-- Total: %d files\n", count_valid_files(files, n_files));

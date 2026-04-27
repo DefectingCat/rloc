@@ -1,9 +1,9 @@
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/wait.h>
-#include <fcntl.h>
+#include <unistd.h>
 
 #include "../unique.h"
 #include "test_framework.h"
@@ -27,7 +27,6 @@ static int create_temp_file(const char* content, char* path_out, size_t path_siz
 
     return 0;
 }
-
 
 /* Use ASSERT_TRUE for negations instead of ASSERT_NEQ */
 #define ASSERT_NOT_NULL(a) ASSERT_TRUE((a) != NULL)
@@ -125,10 +124,8 @@ TEST(test_compute_file_md5) {
 
     // MD5 of "Hello, World!\n" (on Linux with md5sum, on macOS with md5 -r)
     // Expected: bea8252ff4e80f41719ea13cdf007273 (Linux md5sum)
-    uint8_t expected[16] = {
-        0xbe, 0xa8, 0x25, 0x2f, 0xf4, 0xe8, 0x0f, 0x41,
-        0x71, 0x9e, 0xa1, 0x3c, 0xdf, 0x00, 0x72, 0x73
-    };
+    uint8_t expected[16] = {0xbe, 0xa8, 0x25, 0x2f, 0xf4, 0xe8, 0x0f, 0x41,
+                            0x71, 0x9e, 0xa1, 0x3c, 0xdf, 0x00, 0x72, 0x73};
     ASSERT_TRUE(memcmp(md5_out, expected, 16) == 0);
 }
 
@@ -139,10 +136,8 @@ TEST(test_hex_to_md5) {
     const char* hex = "65a8e27d8879283831b664bd81d35ce1";
     hex_to_md5(hex, out);
 
-    uint8_t expected[16] = {
-        0x65, 0xa8, 0xe2, 0x7d, 0x88, 0x79, 0x28, 0x38,
-        0x31, 0xb6, 0x64, 0xbd, 0x81, 0xd3, 0x5c, 0xe1
-    };
+    uint8_t expected[16] = {0x65, 0xa8, 0xe2, 0x7d, 0x88, 0x79, 0x28, 0x38,
+                            0x31, 0xb6, 0x64, 0xbd, 0x81, 0xd3, 0x5c, 0xe1};
 
     for (int i = 0; i < 16; i++) {
         ASSERT_EQ(out[i], expected[i]);
@@ -190,7 +185,8 @@ TEST(test_unique_table_integration) {
 
 int main(void) {
     register_test("unique_table_init_free", test_func_test_unique_table_init_free);
-    register_test("unique_table_insert_and_contains", test_func_test_unique_table_insert_and_contains);
+    register_test("unique_table_insert_and_contains",
+                  test_func_test_unique_table_insert_and_contains);
     register_test("unique_table_duplicates", test_func_test_unique_table_duplicates);
     register_test("compute_file_md5", test_func_test_compute_file_md5);
     register_test("hex_to_md5", test_func_test_hex_to_md5);

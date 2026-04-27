@@ -25,8 +25,8 @@ char* find_tool_path(const char* tool_name);
 // output buffer receives stdout, out_len specifies buffer size
 // timeout_sec is timeout in seconds (0 = no timeout)
 // Returns ExecResult code
-ExecResult safe_exec(const char* cmd_template, const char* path,
-                     char* output, size_t out_len, int timeout_sec);
+ExecResult safe_exec(const char* cmd_template, const char* path, char* output, size_t out_len,
+                     int timeout_sec);
 
 // Execute a command and capture output
 // Simple wrapper for common cases

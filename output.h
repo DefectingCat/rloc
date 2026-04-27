@@ -58,36 +58,37 @@ void output_html_by_file(const FileStats* files, int n_files, double elapsed_sec
 void output_sql(const FileStats* files, int n_files, double elapsed_sec, const char* project);
 
 // Output results in SQL format with per-file breakdown
-void output_sql_by_file(const FileStats* files, int n_files, double elapsed_sec, const char* project);
+void output_sql_by_file(const FileStats* files, int n_files, double elapsed_sec,
+                        const char* project);
 
 // Output results by file and language combined
 void output_by_file_by_lang(const FileStats* files, int n_files, double elapsed_sec);
 
 // Alignment type for file pairs across two references
 typedef enum {
-    ALIGN_ADDED,      // File exists only in ref2 (new file)
-    ALIGN_REMOVED,    // File exists only in ref1 (deleted file)
-    ALIGN_MODIFIED,   // File exists in both refs, content changed
-    ALIGN_IDENTICAL   // File exists in both refs, unchanged
+    ALIGN_ADDED,     // File exists only in ref2 (new file)
+    ALIGN_REMOVED,   // File exists only in ref1 (deleted file)
+    ALIGN_MODIFIED,  // File exists in both refs, content changed
+    ALIGN_IDENTICAL  // File exists in both refs, unchanged
 } AlignmentType;
 
 // A single entry in the alignment table (already-paired file across two refs)
 typedef struct {
-    const char* filepath;      // File path, or "(added)" / "(removed)" for unpaired
-    AlignmentType type;        // Classification of this entry
-    int added;                 // Lines added in ref2 vs ref1 (0 if removed/identical)
-    int removed;               // Lines removed from ref1 vs ref2 (0 if added/identical)
-    const char* language;      // Language name, or "(identical)" / "(none)" for special cases
+    const char* filepath;  // File path, or "(added)" / "(removed)" for unpaired
+    AlignmentType type;    // Classification of this entry
+    int added;             // Lines added in ref2 vs ref1 (0 if removed/identical)
+    int removed;           // Lines removed from ref1 vs ref2 (0 if added/identical)
+    const char* language;  // Language name, or "(identical)" / "(none)" for special cases
 } AlignmentEntry;
 
 // Output file alignment table (cloc --diff-alignment compatible)
 // Text or JSON format based on json_output flag
-void output_alignment(const AlignmentEntry* entries, int n_entries,
-                      const char* ref1, const char* ref2, int json_output);
+void output_alignment(const AlignmentEntry* entries, int n_entries, const char* ref1,
+                      const char* ref2, int json_output);
 
 // Output file alignment table in JSON format (called internally by output_alignment)
-void output_alignment_json(const AlignmentEntry* entries, int n_entries,
-                           const char* ref1, const char* ref2);
+void output_alignment_json(const AlignmentEntry* entries, int n_entries, const char* ref1,
+                           const char* ref2);
 
 // Output diff results (added/removed lines between commits)
 void output_diff(const DiffFileStats* files, int n_files, const char* commit1, const char* commit2,

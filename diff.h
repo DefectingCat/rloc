@@ -2,11 +2,11 @@
 #define DIFF_H
 
 // Diff mode flags
-#define DIFF_MODE_RELATIVE       (0x01)
-#define DIFF_MODE_ALL            (0x02)
-#define DIFF_SHOW_ALIGNMENT      (0x04)
-#define DIFF_IGNORE_WHITESPACE   (0x08)
-#define DIFF_INCLUDE_SUBMODULES  (0x10)
+#define DIFF_MODE_RELATIVE (0x01)
+#define DIFF_MODE_ALL (0x02)
+#define DIFF_SHOW_ALIGNMENT (0x04)
+#define DIFF_IGNORE_WHITESPACE (0x08)
+#define DIFF_INCLUDE_SUBMODULES (0x10)
 
 // Configuration for diff operations
 typedef struct {

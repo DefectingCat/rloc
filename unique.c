@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 static uint32_t hash_md5_bytes(const uint8_t* md5, uint32_t capacity) {
     // Simple FNV-1a variant hash over 16 MD5 bytes

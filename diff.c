@@ -1,9 +1,10 @@
 #include "diff.h"
-#include "util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "util.h"
 
 /* Helper: execute git command and read all output into a Buffer */
 static Buffer* run_git_cmd(const char* repo_path, const char* git_args) {
@@ -14,7 +15,10 @@ static Buffer* run_git_cmd(const char* repo_path, const char* git_args) {
     if (!fp) return NULL;
 
     Buffer* buf = buffer_new(65536);
-    if (!buf) { pclose(fp); return NULL; }
+    if (!buf) {
+        pclose(fp);
+        return NULL;
+    }
 
     char read_buf[8192];
     size_t chunk;
@@ -23,7 +27,10 @@ static Buffer* run_git_cmd(const char* repo_path, const char* git_args) {
     }
     pclose(fp);
 
-    if (buf->size == 0) { buffer_free(buf); return NULL; }
+    if (buf->size == 0) {
+        buffer_free(buf);
+        return NULL;
+    }
     return buf;
 }
 
@@ -51,9 +58,8 @@ static DiffFileStats* parse_numstat_z(Buffer* buf, int* n_files) {
 
     for (size_t i = 0; i < total && idx < count; i++) {
         if (buf->data[i] == '\0' || (i == total - 1 && buf->data[i] != '\n')) {
-            size_t len = (buf->data[i] == '\0')
-                             ? (i - (size_t)(line_start - buf->data))
-                             : (total - (size_t)(line_start - buf->data));
+            size_t len = (buf->data[i] == '\0') ? (i - (size_t)(line_start - buf->data))
+                                                : (total - (size_t)(line_start - buf->data));
 
             /* Copy line for parsing */
             char line[2048];
@@ -75,10 +81,8 @@ static DiffFileStats* parse_numstat_z(Buffer* buf, int* n_files) {
 
                     /* Binary files show as "-" */
                     int added = 0, removed = 0;
-                    if (strcmp(added_str, "-") != 0)
-                        added = atoi(added_str);
-                    if (strcmp(removed_str, "-") != 0)
-                        removed = atoi(removed_str);
+                    if (strcmp(added_str, "-") != 0) added = atoi(added_str);
+                    if (strcmp(removed_str, "-") != 0) removed = atoi(removed_str);
 
                     files[idx].filepath = strdup(filename);
                     files[idx].added = added;
@@ -111,7 +115,10 @@ static DiffFileStats* merge_unique(DiffFileStats* a, int n_a, DiffFileStats* b, 
                                    int* n_out) {
     int cap = n_a + n_b;
     DiffFileStats* merged = calloc(cap, sizeof(DiffFileStats));
-    if (!merged) { *n_out = 0; return NULL; }
+    if (!merged) {
+        *n_out = 0;
+        return NULL;
+    }
 
     int idx = 0;
 
@@ -119,7 +126,7 @@ static DiffFileStats* merge_unique(DiffFileStats* a, int n_a, DiffFileStats* b, 
     for (int i = 0; i < n_a; i++) {
         if (a[i].filepath) {
             merged[idx] = a[i];
-            a[i].filepath = NULL;  /* transfer ownership */
+            a[i].filepath = NULL; /* transfer ownership */
             idx++;
         }
     }
@@ -157,8 +164,7 @@ static int compare_filepath(const void* a, const void* b) {
 /* Helper: find file in array by name, return index or -1 */
 static int find_file(const DiffFileStats* arr, int n, const char* name) {
     for (int i = 0; i < n; i++) {
-        if (arr[i].filepath && strcmp(arr[i].filepath, name) == 0)
-            return i;
+        if (arr[i].filepath && strcmp(arr[i].filepath, name) == 0) return i;
     }
     return -1;
 }
@@ -228,7 +234,10 @@ DiffFileStats* diff_get_stats_extended(const DiffConfig* config, int* n_files) {
     DiffFileStats* files1 = NULL;
     if (n_ref1 > 0) {
         files1 = calloc(n_ref1, sizeof(DiffFileStats));
-        if (!files1) { buffer_free(buf_ref1); return NULL; }
+        if (!files1) {
+            buffer_free(buf_ref1);
+            return NULL;
+        }
 
         int idx = 0;
         char* start = buf_ref1->data;
@@ -256,7 +265,10 @@ DiffFileStats* diff_get_stats_extended(const DiffConfig* config, int* n_files) {
     /* Get files at ref2 */
     snprintf(cmd, sizeof(cmd), "git ls-tree -r --name-only -z '%s'", ref2);
     Buffer* buf_ref2 = run_git_cmd(repo, cmd);
-    if (!buf_ref2) { diff_free_files(files1, n_ref1); return NULL; }
+    if (!buf_ref2) {
+        diff_free_files(files1, n_ref1);
+        return NULL;
+    }
 
     int n_ref2 = 0;
     size_t total2 = buf_ref2->size;
@@ -302,11 +314,10 @@ DiffFileStats* diff_get_stats_extended(const DiffConfig* config, int* n_files) {
     int diff_cmd_len = 0;
     diff_cmd_len = snprintf(diff_cmd, sizeof(diff_cmd), "git diff --numstat -z -M");
     if (config->flags & DIFF_IGNORE_WHITESPACE) {
-        diff_cmd_len += snprintf(diff_cmd + diff_cmd_len, sizeof(diff_cmd) - diff_cmd_len,
-                                 " -w");
+        diff_cmd_len += snprintf(diff_cmd + diff_cmd_len, sizeof(diff_cmd) - diff_cmd_len, " -w");
     }
-    diff_cmd_len += snprintf(diff_cmd + diff_cmd_len, sizeof(diff_cmd) - diff_cmd_len,
-                             " '%s' '%s'", ref1, ref2);
+    diff_cmd_len += snprintf(diff_cmd + diff_cmd_len, sizeof(diff_cmd) - diff_cmd_len, " '%s' '%s'",
+                             ref1, ref2);
 
     Buffer* diff_buf = run_git_cmd(repo, diff_cmd);
     if (!diff_buf) {

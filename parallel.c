@@ -1,16 +1,17 @@
 #include "parallel.h"
-#include "language.h"
-#include "counter.h"
 
+#include <ctype.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
 #include <sys/wait.h>
-#include <signal.h>
-#include <fcntl.h>
-#include <ctype.h>
+#include <unistd.h>
+
+#include "counter.h"
+#include "language.h"
 
 // Get default parallel configuration
 void parallel_default_config(ParallelConfig* config) {
@@ -66,8 +67,8 @@ static void worker_process(const char** files, int start, int end, int write_fd,
         CountResult result;
         if (count_file_with_lang(filepath, lang, skip_lines, &result) == 0) {
             // Output TSV: filepath\tlanguage\tblank\tcomment\tcode
-            fprintf(out, "%s\t%s\t%d\t%d\t%d\n", filepath, lang->name,
-                   result.blank, result.comment, result.code);
+            fprintf(out, "%s\t%s\t%d\t%d\t%d\n", filepath, lang->name, result.blank, result.comment,
+                    result.code);
         }
     }
 
@@ -109,7 +110,8 @@ int parallel_count_files(const char** files, int n_files, ParallelConfig* config
                 }
             }
 
-            if (count_file_with_lang(files[i], lang, skip_lines_worker, &results[count].counts) == 0) {
+            if (count_file_with_lang(files[i], lang, skip_lines_worker, &results[count].counts) ==
+                0) {
                 strncpy(results[count].filepath, files[i], sizeof(results[count].filepath) - 1);
                 results[count].language = lang;
                 count++;
@@ -155,8 +157,8 @@ int parallel_count_files(const char** files, int n_files, ParallelConfig* config
         } else if (pid == 0) {
             // Child process
             close(pipes[w][0]);  // Close read end
-            worker_process(files, start, end, pipes[w][1],
-                           skip_leading_exts, n_skip_leading_exts, skip_leading);
+            worker_process(files, start, end, pipes[w][1], skip_leading_exts, n_skip_leading_exts,
+                           skip_leading);
             exit(0);
         } else {
             // Parent process
@@ -190,7 +192,8 @@ int parallel_count_files(const char** files, int n_files, ParallelConfig* config
 
             if (!filepath || !lang_name || !blank_str || !comment_str || !code_str) continue;
 
-            strncpy(results[total_count].filepath, filepath, sizeof(results[total_count].filepath) - 1);
+            strncpy(results[total_count].filepath, filepath,
+                    sizeof(results[total_count].filepath) - 1);
             results[total_count].filepath[sizeof(results[total_count].filepath) - 1] = '\0';
             results[total_count].counts.blank = atoi(blank_str);
             results[total_count].counts.comment = atoi(comment_str);

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+
 #include "../vcs.h"
 #include "test_framework.h"
 
