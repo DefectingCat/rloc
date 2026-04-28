@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #define UNIQUE_MD5_HEX_LEN 32
-#define UNIQUE_TABLE_MAX 8192
+/* UNIQUE_TABLE_MAX now defined in config.h */
 
 // Hash table entry for MD5-based deduplication
 typedef struct {

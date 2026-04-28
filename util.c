@@ -1,5 +1,7 @@
 #include "util.h"
 
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -97,6 +99,32 @@ int is_binary_file(const char* path) {
     }
 
     return 0;  // No null bytes, likely text
+}
+
+int mkdir_p(const char* path, mode_t mode) {
+    char tmp[PATH_MAX];
+    char* p = NULL;
+    size_t len;
+
+    snprintf(tmp, sizeof(tmp), "%s", path);
+    len = strlen(tmp);
+    if (len > 0 && tmp[len - 1] == '/') {
+        tmp[len - 1] = 0;
+    }
+
+    for (p = tmp + 1; *p; p++) {
+        if (*p == '/') {
+            *p = 0;
+            if (mkdir(tmp, mode) != 0 && errno != EEXIST) {
+                return -1;
+            }
+            *p = '/';
+        }
+    }
+    if (mkdir(tmp, mode) != 0 && errno != EEXIST) {
+        return -1;
+    }
+    return 0;
 }
 
 /* === Buffer Dynamic Buffer Implementation === */

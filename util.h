@@ -22,6 +22,9 @@ long get_file_size(const char* path);
 char* path_join(const char* dir, const char* filename);
 int is_binary_file(const char* path);
 
+/* Create directory recursively (like mkdir -p) */
+int mkdir_p(const char* path, mode_t mode);
+
 /* Buffer dynamic buffer */
 typedef struct {
     char* data;
