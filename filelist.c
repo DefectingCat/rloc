@@ -36,7 +36,7 @@ static bool is_known_text_extension(const char* filepath) {
     return false;
 }
 
-static int filelist_add(FileList* list, const char* path) {
+static int filelist_add_internal(FileList* list, const char* path) {
     if (list->count >= list->capacity) {
         int new_capacity = list->capacity == 0 ? INITIAL_CAPACITY : list->capacity * 2;
         char** new_paths = realloc(list->paths, new_capacity * sizeof(char*));
@@ -54,6 +54,11 @@ static int filelist_add(FileList* list, const char* path) {
 
     list->count++;
     return 0;
+}
+
+// Public function to add file path to list
+void filelist_append(FileList* list, const char* path) {
+    filelist_add_internal(list, path);
 }
 
 static int is_excluded_dir(const char* dir_name, const FilelistConfig* config) {
@@ -141,7 +146,7 @@ int filelist_scan(const char* path, const FilelistConfig* config, FileList* list
     }
 
     if (info.is_regular) {
-        return filelist_add(list, path);
+        return filelist_add_internal(list, path);
     }
 
     if (!info.is_dir) {
@@ -287,7 +292,7 @@ int filelist_scan(const char* path, const FilelistConfig* config, FileList* list
                 }
             }
 
-            filelist_add(list, full_path);
+            filelist_add_internal(list, full_path);
             free(full_path);
         } else {
             free(full_path);

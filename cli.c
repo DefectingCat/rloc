@@ -54,6 +54,9 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
     // Default to threads mode (more efficient than fork+pipes)
     args->use_threads = 1;
 
+    // Track explicit parallel mode selection for mutual exclusion validation
+    int explicit_parallel_mode = 0;  // 0=none, 1=threads, 2=fork
+
     /* Restore config-set values */
     args->n_exclude_dirs = saved_n_exclude_dirs;
     args->exclude_dirs = saved_exclude_dirs;
@@ -488,9 +491,25 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
         } else if (strncmp(argv[i], "--processes=", 12) == 0) {
             args->processes = atoi(argv[i] + 12);
         } else if (strcmp(argv[i], "--threads") == 0) {
+            // Check mutual exclusion with --coro
+            if (explicit_parallel_mode == 3) {
+                fprintf(stderr, "Error: --threads cannot be used with --coro\n");
+                free(args->input_files);
+                args->input_files = NULL;
+                return -1;
+            }
             args->use_threads = 1;
+            explicit_parallel_mode = 1;  // Mark --threads explicitly set
         } else if (strcmp(argv[i], "--fork") == 0) {
+            // Check mutual exclusion with --coro
+            if (explicit_parallel_mode == 3) {
+                fprintf(stderr, "Error: --fork cannot be used with --coro\n");
+                free(args->input_files);
+                args->input_files = NULL;
+                return -1;
+            }
             args->use_threads = 0;  // Use fork+pipes instead of threads
+            explicit_parallel_mode = 2;  // Mark --fork explicitly set
         } else if (strncmp(argv[i], "--batch-input=", 14) == 0) {
             args->batch_input = strdup(argv[i] + 14);
         } else if (strcmp(argv[i], "--batch-output=tsv") == 0) {
@@ -601,6 +620,18 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
             free(spec);
         } else if (strcmp(argv[i], "--follow-links") == 0) {
             args->follow_links = 1;
+        } else if (strcmp(argv[i], "--coro") == 0) {
+            // Check mutual exclusion with --threads or --fork
+            if (explicit_parallel_mode != 0) {
+                fprintf(stderr, "Error: --coro cannot be used with %s\n",
+                        explicit_parallel_mode == 1 ? "--threads" : "--fork");
+                free(args->input_files);
+                args->input_files = NULL;
+                return -1;
+            }
+            args->use_coro = 1;
+            args->use_threads = 0;  // coro mode doesn't use threads
+            explicit_parallel_mode = 3;  // Mark --coro explicitly set
         } else if (strncmp(argv[i], "--explain=", 10) == 0) {
             args->explain_lang = strdup(argv[i] + 10);
         } else if (strncmp(argv[i], "--categorized=", 14) == 0) {
@@ -906,6 +937,7 @@ void cli_print_help(const char* prog_name) {
     printf("  --processes=N       Use N parallel workers (0 = auto detect)\n");
     printf("  --threads           Use threads for parallel counting (default)\n");
     printf("  --fork              Use fork+pipes for parallel counting (legacy)\n");
+    printf("  --coro              Use coroutine mode for directory scanning\n");
     printf("  --git=REF           Count files at git commit/branch/tag\n");
     printf("  --list-file=FILE    Read input file list from FILE (- for STDIN)\n");
     printf("  --force-lang=LANG   Force language for all files (or LANG,EXT for specific ext)\n");

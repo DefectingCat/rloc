@@ -26,6 +26,9 @@ void filelist_init(FileList* list);
 void filelist_free(FileList* list);
 int filelist_scan(const char* path, const FilelistConfig* config, FileList* list);
 
+// Add file path to list (public API)
+void filelist_append(FileList* list, const char* path);
+
 // Load exclude patterns from file (one pattern per line, # for comments)
 int filelist_load_exclude_patterns(const char* filepath, FilelistConfig* config);
 

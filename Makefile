@@ -4,6 +4,39 @@ INCLUDES = -I. -Itests
 BINDIR = bin
 PREFIX ?= /usr/local
 
+# Platform detection for coco
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+    COCO_PLATFORM = linux
+else ifeq ($(UNAME_S),Darwin)
+    COCO_PLATFORM = macos
+else
+    COCO_PLATFORM = windows
+endif
+
+# Architecture detection for coco
+UNAME_M := $(shell uname -m)
+ifeq ($(UNAME_M),x86_64)
+    COCO_ARCH = x86_64
+else ifeq ($(UNAME_M),arm64)
+    COCO_ARCH = arm64
+endif
+
+# Coco library configuration
+COCO_DIR = coco
+COCO_INCLUDES = -I$(COCO_DIR)/include
+COCO_SOURCES = $(COCO_DIR)/src/core/coro.c \
+               $(COCO_DIR)/src/core/sched.c \
+               $(COCO_DIR)/src/core/context.c \
+               $(COCO_DIR)/src/core/stack.c \
+               $(COCO_DIR)/src/core/signal.c \
+               $(COCO_DIR)/src/timer/timer_wheel.c \
+               $(COCO_DIR)/src/channel/channel.c \
+               $(COCO_DIR)/src/io/event_loop.c \
+               $(COCO_DIR)/src/io/poll_$(COCO_PLATFORM).c \
+               $(COCO_DIR)/src/platform/$(COCO_PLATFORM)/ctx_$(COCO_ARCH).S
+COCO_CFLAGS = -D_COCO_PLATFORM_$(shell echo $(COCO_PLATFORM) | tr '[:lower:]' '[:upper:]')
+
 # Default target
 build: bin/rloc
 
@@ -12,12 +45,12 @@ $(BINDIR):
 	mkdir -p $(BINDIR)
 
 # Source files
-SOURCES = main.c cli.c counter.c output.c util.c filelist.c language.c lang_defs.c strlit.c vcs.c diff.c temp_manager.c exec_helper.c archive.c parallel.c unique.c config.c threaded_counter.c
+SOURCES = main.c cli.c counter.c output.c util.c filelist.c language.c lang_defs.c strlit.c vcs.c diff.c temp_manager.c exec_helper.c archive.c parallel.c unique.c config.c threaded_counter.c coro_scanner.c
 OBJECTS = $(SOURCES:.c=.o)
 
 # Main target
-bin/rloc: $(SOURCES) | $(BINDIR)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(SOURCES)
+bin/rloc: $(SOURCES) $(COCO_SOURCES) | $(BINDIR)
+	$(CC) $(CFLAGS) $(COCO_CFLAGS) $(INCLUDES) $(COCO_INCLUDES) -o $@ $(SOURCES) $(COCO_SOURCES)
 
 # Test targets
 bin/test_runner: tests/test_counter.c tests/test_framework.c counter.c strlit.c language.c lang_defs.c | $(BINDIR)
@@ -80,7 +113,10 @@ bin/test_lang_defs_runner: tests/test_lang_defs.c tests/test_framework.c languag
 bin/test_phase4_runner: tests/test_phase4.c tests/test_framework.c cli.c | $(BINDIR)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_phase4.c tests/test_framework.c cli.c
 
-test: bin/test_runner bin/test_filelist_runner bin/test_language_runner bin/test_strlit_runner bin/test_block_comments_runner bin/test_continuation_runner bin/test_archive_runner bin/test_temp_manager_runner bin/test_parallel_runner bin/test_git_runner bin/test_filter_runner bin/test_diff_runner bin/test_unique_runner bin/test_cli_runner bin/test_config_runner bin/test_util_runner bin/test_vcs_runner bin/test_output_runner bin/test_phase4_runner bin/test_lang_defs_runner
+bin/test_coro_scanner_runner: tests/test_coro_scanner.c tests/test_framework.c coro_scanner.c filelist.c util.c $(COCO_SOURCES) | $(BINDIR)
+	$(CC) $(CFLAGS) $(COCO_CFLAGS) $(INCLUDES) $(COCO_INCLUDES) -o $@ tests/test_coro_scanner.c tests/test_framework.c coro_scanner.c filelist.c util.c $(COCO_SOURCES)
+
+test: bin/test_runner bin/test_filelist_runner bin/test_language_runner bin/test_strlit_runner bin/test_block_comments_runner bin/test_continuation_runner bin/test_archive_runner bin/test_temp_manager_runner bin/test_parallel_runner bin/test_git_runner bin/test_filter_runner bin/test_diff_runner bin/test_unique_runner bin/test_cli_runner bin/test_config_runner bin/test_util_runner bin/test_vcs_runner bin/test_output_runner bin/test_phase4_runner bin/test_lang_defs_runner bin/test_coro_scanner_runner
 	$(BINDIR)/test_runner
 	$(BINDIR)/test_filelist_runner
 	$(BINDIR)/test_language_runner
@@ -101,6 +137,7 @@ test: bin/test_runner bin/test_filelist_runner bin/test_language_runner bin/test
 	$(BINDIR)/test_output_runner
 	$(BINDIR)/test_phase4_runner
 	$(BINDIR)/test_lang_defs_runner
+	$(BINDIR)/test_coro_scanner_runner
 
 # Clean target
 clean:

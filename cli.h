@@ -103,6 +103,7 @@ typedef struct {
     char* categorized_file;        // File to save categorized info
     char* counted_file;            // File to save counted file names
     char* found_file;              // File to save found file names
+    int use_coro;                  // Use coroutine mode for directory scanning
 } CliArgs;
 
 int cli_parse(int argc, char** argv, CliArgs* args);

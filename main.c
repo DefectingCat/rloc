@@ -22,6 +22,7 @@
 #include "unique.h"
 #include "util.h"
 #include "vcs.h"
+#include "coro_scanner.h"
 
 static const char* get_extension(const char* filepath) {
     const char* ext = strrchr(filepath, '.');
@@ -431,7 +432,13 @@ int main(int argc, char** argv) {
         for (int i = 0; i < args.n_input_files; i++) {
             const char* path = args.input_files[i];
             if (is_directory(path)) {
-                if (filelist_scan(path, &config, &filelist) != 0) {
+                if (args.use_coro) {
+                    // Coroutine mode for directory scanning
+                    if (coro_scan_directory(path, &config, &filelist) != 0) {
+                        fprintf(stderr, "Error: Cannot scan directory '%s' (coro mode)\n", path);
+                        error_count++;
+                    }
+                } else if (filelist_scan(path, &config, &filelist) != 0) {
                     fprintf(stderr, "Error: Cannot scan directory '%s'\n", path);
                     error_count++;
                 }
