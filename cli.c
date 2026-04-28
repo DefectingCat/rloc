@@ -51,8 +51,8 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
     // Initialize structure - reset everything
     memset(args, 0, sizeof(CliArgs));
 
-    // Default to threads mode (more efficient than fork+pipes)
-    args->use_threads = 1;
+    // Default to coroutine mode (most efficient for I/O-bound directory scanning)
+    args->use_coro = 1;
 
     // Track explicit parallel mode selection for mutual exclusion validation
     int explicit_parallel_mode = 0;  // 0=none, 1=threads, 2=fork

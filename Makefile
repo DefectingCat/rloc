@@ -29,6 +29,7 @@ COCO_SOURCES = $(COCO_DIR)/src/core/coro.c \
                $(COCO_DIR)/src/core/sched.c \
                $(COCO_DIR)/src/core/context.c \
                $(COCO_DIR)/src/core/stack.c \
+               $(COCO_DIR)/src/core/stack_pool.c \
                $(COCO_DIR)/src/core/signal.c \
                $(COCO_DIR)/src/timer/timer_wheel.c \
                $(COCO_DIR)/src/channel/channel.c \
