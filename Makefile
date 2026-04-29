@@ -117,7 +117,10 @@ bin/test_phase4_runner: tests/test_phase4.c tests/test_framework.c cli.c util.c 
 bin/test_coro_scanner_runner: tests/test_coro_scanner.c tests/test_framework.c coro_scanner.c filelist.c util.c $(COCO_SOURCES) | $(BINDIR)
 	$(CC) $(CFLAGS) $(COCO_CFLAGS) $(INCLUDES) $(COCO_INCLUDES) -o $@ tests/test_coro_scanner.c tests/test_framework.c coro_scanner.c filelist.c util.c $(COCO_SOURCES)
 
-test: bin/test_runner bin/test_filelist_runner bin/test_language_runner bin/test_strlit_runner bin/test_block_comments_runner bin/test_continuation_runner bin/test_archive_runner bin/test_temp_manager_runner bin/test_parallel_runner bin/test_git_runner bin/test_filter_runner bin/test_diff_runner bin/test_unique_runner bin/test_cli_runner bin/test_config_runner bin/test_util_runner bin/test_vcs_runner bin/test_output_runner bin/test_phase4_runner bin/test_lang_defs_runner bin/test_coro_scanner_runner
+bin/test_counter_interface_runner: tests/test_counter_interface.c tests/test_framework.c counter.c strlit.c language.c lang_defs.c | $(BINDIR)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_counter_interface.c tests/test_framework.c counter.c strlit.c language.c lang_defs.c
+
+test: bin/test_runner bin/test_filelist_runner bin/test_language_runner bin/test_strlit_runner bin/test_block_comments_runner bin/test_continuation_runner bin/test_archive_runner bin/test_temp_manager_runner bin/test_parallel_runner bin/test_git_runner bin/test_filter_runner bin/test_diff_runner bin/test_unique_runner bin/test_cli_runner bin/test_config_runner bin/test_util_runner bin/test_vcs_runner bin/test_output_runner bin/test_phase4_runner bin/test_lang_defs_runner bin/test_coro_scanner_runner bin/test_counter_interface_runner
 	$(BINDIR)/test_runner
 	$(BINDIR)/test_filelist_runner
 	$(BINDIR)/test_language_runner
@@ -139,6 +142,7 @@ test: bin/test_runner bin/test_filelist_runner bin/test_language_runner bin/test
 	$(BINDIR)/test_phase4_runner
 	$(BINDIR)/test_lang_defs_runner
 	$(BINDIR)/test_coro_scanner_runner
+	$(BINDIR)/test_counter_interface_runner
 
 # Clean target
 clean:
