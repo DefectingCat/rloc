@@ -122,9 +122,13 @@ bin/test_counter_interface_runner: tests/test_counter_interface.c tests/test_fra
 
 bin/test_output_writer_runner: tests/test_output_writer.c tests/test_framework.c output_writer.c | $(BINDIR)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_output_writer.c tests/test_framework.c output_writer.c
+bin/test_scanner_runner: tests/test_scanner.c tests/test_framework.c scanner.c filelist.c util.c temp_manager.c archive.c exec_helper.c vcs_ops.c vcs.c coro_scanner.c diff.c output.c counter.c language.c lang_defs.c strlit.c $(COCO_SOURCES) | $(BINDIR)
+	$(CC) $(CFLAGS) $(COCO_CFLAGS) $(INCLUDES) $(COCO_INCLUDES) -o $@ tests/test_scanner.c tests/test_framework.c scanner.c filelist.c util.c temp_manager.c archive.c exec_helper.c vcs_ops.c vcs.c coro_scanner.c diff.c output.c counter.c language.c lang_defs.c strlit.c $(COCO_SOURCES)
 
-test: bin/test_runner bin/test_filelist_runner bin/test_language_runner bin/test_strlit_runner bin/test_block_comments_runner bin/test_continuation_runner bin/test_archive_runner bin/test_temp_manager_runner bin/test_parallel_runner bin/test_git_runner bin/test_filter_runner bin/test_diff_runner bin/test_unique_runner bin/test_cli_runner bin/test_config_runner bin/test_util_runner bin/test_vcs_runner bin/test_output_runner bin/test_phase4_runner bin/test_lang_defs_runner bin/test_coro_scanner_runner bin/test_counter_interface_runner bin/test_output_writer_runner
+
+test: bin/test_runner bin/test_filelist_runner bin/test_language_runner bin/test_strlit_runner bin/test_block_comments_runner bin/test_continuation_runner bin/test_archive_runner bin/test_temp_manager_runner bin/test_parallel_runner bin/test_git_runner bin/test_filter_runner bin/test_diff_runner bin/test_unique_runner bin/test_cli_runner bin/test_config_runner bin/test_util_runner bin/test_vcs_runner bin/test_output_runner bin/test_phase4_runner bin/test_lang_defs_runner bin/test_coro_scanner_runner bin/test_counter_interface_runner bin/test_output_writer_runner bin/test_scanner_runner
 		$(BINDIR)/test_output_writer_runner
+		$(BINDIR)/test_scanner_runner
 	$(BINDIR)/test_runner
 	$(BINDIR)/test_filelist_runner
 	$(BINDIR)/test_language_runner
