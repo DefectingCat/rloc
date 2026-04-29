@@ -24,16 +24,18 @@ endif
 
 # Coco library configuration
 COCO_DIR = coco
-COCO_INCLUDES = -I$(COCO_DIR)/include
+COCO_INCLUDES = -I$(COCO_DIR)/include -I$(COCO_DIR)/src
 COCO_SOURCES = $(COCO_DIR)/src/core/coro.c \
                $(COCO_DIR)/src/core/sched.c \
                $(COCO_DIR)/src/core/context.c \
                $(COCO_DIR)/src/core/stack.c \
                $(COCO_DIR)/src/core/stack_pool.c \
                $(COCO_DIR)/src/core/signal.c \
+               $(COCO_DIR)/src/core/cancel.c \
                $(COCO_DIR)/src/timer/timer_wheel.c \
                $(COCO_DIR)/src/channel/channel.c \
                $(COCO_DIR)/src/io/event_loop.c \
+               $(COCO_DIR)/src/io/fd_table.c \
                $(COCO_DIR)/src/io/poll_$(COCO_PLATFORM).c \
                $(COCO_DIR)/src/platform/$(COCO_PLATFORM)/ctx_$(COCO_ARCH).S
 COCO_CFLAGS = -D_COCO_PLATFORM_$(shell echo $(COCO_PLATFORM) | tr '[:lower:]' '[:upper:]')
