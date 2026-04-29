@@ -122,12 +122,32 @@ rloc/
 ├── main.c           # 程序入口，协调各模块
 ├── cli.c / cli.h    # 命令行参数解析
 ├── counter.c / counter.h  # 核心行计数逻辑
+├── counter_interface.h  # Counter 接口抽象层
+├── counter_ops.c / counter_ops.h  # 计数操作工具函数
 ├── language.c / language.h  # 语言检测
 ├── lang_defs.c / lang_defs.h  # 语言定义数据
 ├── filelist.c / filelist.h  # 目录扫描
 ├── strlit.c / strlit.h  # 字符串字面量处理
 ├── output.c / output.h  # 结果格式化输出
+├── output_writer.c / output_writer.h  # Output Writer 接口
+├── scanner.c / scanner.h  # 输入路径扫描模块
+├── input_handler.c / input_handler.h  # 输入处理模块
 ├── util.c / util.h  # 工具函数
+├── error.c / error.h  # 错误处理
+├── file_processor.c / file_processor.h  # 文件处理协调
+├── report.c / report.h  # 报告生成
+├── vcs.c / vcs.h  # 版本控制系统检测
+├── vcs_ops.c / vcs_ops.h  # VCS 操作
+├── diff.c / diff.h  # Diff 统计
+├── temp_manager.c / temp_manager.h  # 临时文件管理
+├── exec_helper.c / exec_helper.h  # 命令执行辅助
+├── archive.c / archive.h  # 归档文件处理
+├── parallel.c / parallel.h  # 并行处理
+├── unique.c / unique.h  # 去重工具
+├── config.c / config.h  # 配置文件处理
+├── threaded_counter.c / threaded_counter.h  # 多线程计数
+├── coro_scanner.c / coro_scanner.h  # 协程扫描器
+├── coco/            # Coco 协程库
 ├── Makefile         # 构建配置
 ├── tests/           # 测试代码
 ├── docs/            # 文档
@@ -137,15 +157,21 @@ rloc/
 ### 模块依赖关系
 
 ```
-main.c
-  ├── cli.h       # 参数解析
-  ├── filelist.h  # 文件发现
-  ├── language.h  # 语言检测
-  │     └── lang_defs.h  # 语言定义
-  ├── counter.h   # 行计数
-  │     ├── language.h  # 语言信息
-  │     └── strlit.h    # 字符串剥离
-  └── output.h    # 结果输出
+main.c (入口点，协调各模块)
+  ├── cli.h           # 参数解析
+  ├── config.h        # 配置加载
+  ├── scanner.h       # 输入路径扫描
+  │     ├── filelist.h    # 文件发现
+  │     ├── vcs_ops.h     # VCS 操作
+  │     └── coro_scanner.h # 协程扫描
+  ├── file_processor.h  # 文件处理协调
+  │     ├── counter_interface.h  # Counter 接口
+  │     │     └── counter.h  # 行计数实现
+  │     └── language.h  # 语言检测
+  ├── report.h        # 报告生成
+  │     └── output_writer.h  # Output Writer 接口
+  │           └── output.h  # 输出格式化
+  └── error.h         # 错误处理
 ```
 
 ## 核心算法
@@ -218,6 +244,21 @@ make test
 # - strlit.c (字符串处理)
 # - block_comments (块注释)
 # - continuation (续行符)
+# - archive.c (归档处理)
+# - temp_manager.c (临时文件管理)
+# - parallel.c (并行处理)
+# - diff.c (Diff 统计)
+# - vcs.c (VCS 检测)
+# - cli.c (命令行解析)
+# - config.c (配置处理)
+# - util.c (工具函数)
+# - unique.c (去重)
+# - output.c (输出格式化)
+# - lang_defs.c (语言定义)
+# - coro_scanner.c (协程扫描)
+# - counter_interface.h (Counter 接口)
+# - output_writer.c (Output Writer 接口)
+# - scanner.c (输入扫描模块)
 ```
 
 ### 与 cloc 对比
