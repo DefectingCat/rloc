@@ -220,3 +220,48 @@ int buffer_reserve(Buffer* buf, size_t min_capacity) {
     buf->capacity = min_capacity;
     return 0;
 }
+
+/* === Shell Argument Escaping === */
+
+char* escape_shell_arg(const char* input) {
+    if (!input) {
+        return NULL;
+    }
+
+    size_t len = strlen(input);
+
+    // Count single quotes for escaping (each ' becomes '\'' - 4 chars instead of 1)
+    size_t single_quote_count = 0;
+    for (size_t i = 0; i < len; i++) {
+        if (input[i] == '\'') {
+            single_quote_count++;
+        }
+    }
+
+    // Allocate: original length + 2 (surrounding quotes) + 3 extra per single quote
+    size_t escaped_len = len + 2 + (single_quote_count * 3);
+    char* escaped = malloc(escaped_len + 1);  // +1 for null terminator
+    if (!escaped) {
+        return NULL;
+    }
+
+    size_t j = 0;
+    escaped[j++] = '\'';  // Opening quote
+
+    for (size_t i = 0; i < len; i++) {
+        if (input[i] == '\'') {
+            // End quote, escaped quote, start quote
+            escaped[j++] = '\'';
+            escaped[j++] = '\\';
+            escaped[j++] = '\'';
+            escaped[j++] = '\'';
+        } else {
+            escaped[j++] = input[i];
+        }
+    }
+
+    escaped[j++] = '\'';  // Closing quote
+    escaped[j] = '\0';
+
+    return escaped;
+}

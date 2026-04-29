@@ -5,13 +5,20 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "util.h"
+
 // Check if a tool/command is available in PATH
 int check_tool_available(const char* tool_name) {
     if (!tool_name) return 0;
 
+    // Escape tool_name for shell safety
+    char* escaped_tool = escape_shell_arg(tool_name);
+    if (!escaped_tool) return 0;
+
     // Use 'which' to check availability
     char cmd[256];
-    snprintf(cmd, sizeof(cmd), "which '%s' 2>/dev/null", tool_name);
+    snprintf(cmd, sizeof(cmd), "which %s 2>/dev/null", escaped_tool);
+    free(escaped_tool);
 
     FILE* fp = popen(cmd, "r");
     if (!fp) return 0;
@@ -27,8 +34,13 @@ int check_tool_available(const char* tool_name) {
 char* find_tool_path(const char* tool_name) {
     if (!tool_name) return NULL;
 
+    // Escape tool_name for shell safety
+    char* escaped_tool = escape_shell_arg(tool_name);
+    if (!escaped_tool) return NULL;
+
     char cmd[256];
-    snprintf(cmd, sizeof(cmd), "which '%s' 2>/dev/null", tool_name);
+    snprintf(cmd, sizeof(cmd), "which %s 2>/dev/null", escaped_tool);
+    free(escaped_tool);
 
     FILE* fp = popen(cmd, "r");
     if (!fp) return NULL;
@@ -48,6 +60,26 @@ char* find_tool_path(const char* tool_name) {
     return strdup(buf);
 }
 
+// Validate that a format string contains only expected %s placeholders
+static int validate_format_string(const char* fmt) {
+    if (!fmt) return 0;
+
+    int placeholder_count = 0;
+    for (const char* p = fmt; *p; p++) {
+        if (*p == '%') {
+            p++;
+            if (*p == 's') {
+                placeholder_count++;
+            } else if (*p != '%' && *p != '\0') {
+                // Only %% (escaped %) is allowed, other format specifiers are not
+                return 0;
+            }
+        }
+    }
+    // Allow 0 or 1 %s placeholder
+    return placeholder_count <= 1;
+}
+
 // Safely execute a command template with path substitution
 ExecResult safe_exec(const char* cmd_template, const char* path, char* output, size_t out_len,
                      int timeout_sec) {
@@ -56,10 +88,20 @@ ExecResult safe_exec(const char* cmd_template, const char* path, char* output, s
         return EXEC_FAILED;
     }
 
+    // Validate format string to prevent format string attacks
+    if (!validate_format_string(cmd_template)) {
+        return EXEC_FAILED;
+    }
+
     // Build command with path substitution
     char cmd[1024];
     if (path) {
-        snprintf(cmd, sizeof(cmd), cmd_template, path);
+        // Escape path for shell safety
+        char* escaped_path = escape_shell_arg(path);
+        if (!escaped_path) return EXEC_FAILED;
+
+        snprintf(cmd, sizeof(cmd), cmd_template, escaped_path);
+        free(escaped_path);
     } else {
         // If no path, use template directly (assuming no %s)
         strncpy(cmd, cmd_template, sizeof(cmd) - 1);

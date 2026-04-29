@@ -72,8 +72,8 @@ bin/test_block_comments_runner: tests/test_block_comments.c tests/test_framework
 bin/test_continuation_runner: tests/test_continuation.c tests/test_framework.c counter.c strlit.c language.c lang_defs.c | $(BINDIR)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_continuation.c tests/test_framework.c counter.c strlit.c language.c lang_defs.c
 
-bin/test_archive_runner: tests/test_archive.c tests/test_framework.c archive.c temp_manager.c exec_helper.c | $(BINDIR)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_archive.c tests/test_framework.c archive.c temp_manager.c exec_helper.c
+bin/test_archive_runner: tests/test_archive.c tests/test_framework.c archive.c temp_manager.c exec_helper.c util.c | $(BINDIR)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_archive.c tests/test_framework.c archive.c temp_manager.c exec_helper.c util.c
 
 bin/test_temp_manager_runner: tests/test_temp_manager.c tests/test_framework.c temp_manager.c | $(BINDIR)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_temp_manager.c tests/test_framework.c temp_manager.c

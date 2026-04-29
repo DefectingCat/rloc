@@ -39,4 +39,7 @@ char* buffer_steal(Buffer* buf, size_t* out_size);
 void buffer_clear(Buffer* buf);
 int buffer_reserve(Buffer* buf, size_t min_capacity);
 
+/* Shell argument escaping for safe popen() usage */
+char* escape_shell_arg(const char* input);
+
 #endif

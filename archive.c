@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "exec_helper.h"
+#include "util.h"
 
 // Detect archive type from filename
 ArchiveType archive_detect_type(const char* filename) {
@@ -77,29 +78,43 @@ char* archive_extract(const char* archive_path, TempManager* mgr) {
     char* extract_dir = temp_manager_create_dir(mgr, "rloc_extract");
     if (!extract_dir) return NULL;
 
+    // Escape paths for shell safety
+    char* escaped_archive = escape_shell_arg(archive_path);
+    char* escaped_dir = escape_shell_arg(extract_dir);
+    if (!escaped_archive || !escaped_dir) {
+        free(escaped_archive);
+        free(escaped_dir);
+        return NULL;
+    }
+
     // Build extraction command
     char cmd[2048];
     char output[1024];
 
     switch (type) {
         case ARCHIVE_ZIP:
-            snprintf(cmd, sizeof(cmd), "unzip -q '%s' -d '%s' 2>&1", archive_path, extract_dir);
+            snprintf(cmd, sizeof(cmd), "unzip -q %s -d %s 2>&1", escaped_archive, escaped_dir);
             break;
         case ARCHIVE_TAR:
-            snprintf(cmd, sizeof(cmd), "tar -xf '%s' -C '%s' 2>&1", archive_path, extract_dir);
+            snprintf(cmd, sizeof(cmd), "tar -xf %s -C %s 2>&1", escaped_archive, escaped_dir);
             break;
         case ARCHIVE_TAR_GZ:
-            snprintf(cmd, sizeof(cmd), "tar -xzf '%s' -C '%s' 2>&1", archive_path, extract_dir);
+            snprintf(cmd, sizeof(cmd), "tar -xzf %s -C %s 2>&1", escaped_archive, escaped_dir);
             break;
         case ARCHIVE_TAR_BZ2:
-            snprintf(cmd, sizeof(cmd), "tar -xjf '%s' -C '%s' 2>&1", archive_path, extract_dir);
+            snprintf(cmd, sizeof(cmd), "tar -xjf %s -C %s 2>&1", escaped_archive, escaped_dir);
             break;
         case ARCHIVE_TAR_XZ:
-            snprintf(cmd, sizeof(cmd), "tar -xJf '%s' -C '%s' 2>&1", archive_path, extract_dir);
+            snprintf(cmd, sizeof(cmd), "tar -xJf %s -C %s 2>&1", escaped_archive, escaped_dir);
             break;
         default:
+            free(escaped_archive);
+            free(escaped_dir);
             return NULL;
     }
+
+    free(escaped_archive);
+    free(escaped_dir);
 
     ExecResult result = exec_capture(cmd, output, sizeof(output));
     if (result != EXEC_OK && result != EXEC_OUTPUT_TRUNC) {

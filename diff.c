@@ -8,8 +8,13 @@
 
 /* Helper: execute git command and read all output into a Buffer */
 static Buffer* run_git_cmd(const char* repo_path, const char* git_args) {
+    // Escape repo_path for shell safety
+    char* escaped_repo = escape_shell_arg(repo_path);
+    if (!escaped_repo) return NULL;
+
     char cmd[4096];
-    snprintf(cmd, sizeof(cmd), "cd '%s' && %s 2>/dev/null", repo_path, git_args);
+    snprintf(cmd, sizeof(cmd), "cd %s && %s 2>/dev/null", escaped_repo, git_args);
+    free(escaped_repo);
 
     FILE* fp = popen(cmd, "r");
     if (!fp) return NULL;
@@ -178,8 +183,20 @@ DiffFileStats* diff_get_files(const char* repo_path, const char* commit1, const 
     /* Early exit: same commit */
     if (strcmp(commit1, commit2) == 0) return NULL;
 
+    // Escape commit refs for shell safety
+    char* escaped_c1 = escape_shell_arg(commit1);
+    char* escaped_c2 = escape_shell_arg(commit2);
+    if (!escaped_c1 || !escaped_c2) {
+        free(escaped_c1);
+        free(escaped_c2);
+        return NULL;
+    }
+
     char cmd[4096];
-    snprintf(cmd, sizeof(cmd), "git diff --numstat -z '%s' '%s'", commit1, commit2);
+    snprintf(cmd, sizeof(cmd), "git diff --numstat -z %s %s", escaped_c1, escaped_c2);
+
+    free(escaped_c1);
+    free(escaped_c2);
 
     Buffer* buf = run_git_cmd(repo_path, cmd);
     if (!buf) return NULL;
@@ -200,12 +217,24 @@ DiffFileStats* diff_get_stats_extended(const DiffConfig* config, int* n_files) {
     /* Early exit: same reference */
     if (strcmp(ref1, ref2) == 0) return NULL;
 
+    // Escape refs for shell safety
+    char* escaped_ref1 = escape_shell_arg(ref1);
+    char* escaped_ref2 = escape_shell_arg(ref2);
+    if (!escaped_ref1 || !escaped_ref2) {
+        free(escaped_ref1);
+        free(escaped_ref2);
+        return NULL;
+    }
+
     /* DIFF_MODE_RELATIVE: only changed files via git diff --numstat */
     if (config->flags & DIFF_MODE_RELATIVE) {
         char cmd[4096];
         char* extra = "";
         if (config->flags & DIFF_IGNORE_WHITESPACE) extra = " -w";
-        snprintf(cmd, sizeof(cmd), "git diff --numstat -z%s '%s' '%s'", extra, ref1, ref2);
+        snprintf(cmd, sizeof(cmd), "git diff --numstat -z%s %s %s", extra, escaped_ref1, escaped_ref2);
+
+        free(escaped_ref1);
+        free(escaped_ref2);
 
         Buffer* buf = run_git_cmd(repo, cmd);
         if (!buf) return NULL;
@@ -219,7 +248,7 @@ DiffFileStats* diff_get_stats_extended(const DiffConfig* config, int* n_files) {
     char cmd[4096];
 
     /* Get files at ref1 */
-    snprintf(cmd, sizeof(cmd), "git ls-tree -r --name-only -z '%s'", ref1);
+    snprintf(cmd, sizeof(cmd), "git ls-tree -r --name-only -z %s", escaped_ref1);
     Buffer* buf_ref1 = run_git_cmd(repo, cmd);
     if (!buf_ref1) return NULL;
 
@@ -263,7 +292,7 @@ DiffFileStats* diff_get_stats_extended(const DiffConfig* config, int* n_files) {
     buffer_free(buf_ref1);
 
     /* Get files at ref2 */
-    snprintf(cmd, sizeof(cmd), "git ls-tree -r --name-only -z '%s'", ref2);
+    snprintf(cmd, sizeof(cmd), "git ls-tree -r --name-only -z %s", escaped_ref2);
     Buffer* buf_ref2 = run_git_cmd(repo, cmd);
     if (!buf_ref2) {
         diff_free_files(files1, n_ref1);
@@ -316,8 +345,12 @@ DiffFileStats* diff_get_stats_extended(const DiffConfig* config, int* n_files) {
     if (config->flags & DIFF_IGNORE_WHITESPACE) {
         diff_cmd_len += snprintf(diff_cmd + diff_cmd_len, sizeof(diff_cmd) - diff_cmd_len, " -w");
     }
-    diff_cmd_len += snprintf(diff_cmd + diff_cmd_len, sizeof(diff_cmd) - diff_cmd_len, " '%s' '%s'",
-                             ref1, ref2);
+    diff_cmd_len += snprintf(diff_cmd + diff_cmd_len, sizeof(diff_cmd) - diff_cmd_len, " %s %s",
+                             escaped_ref1, escaped_ref2);
+
+    // Free escaped refs after building all commands
+    free(escaped_ref1);
+    free(escaped_ref2);
 
     Buffer* diff_buf = run_git_cmd(repo, diff_cmd);
     if (!diff_buf) {

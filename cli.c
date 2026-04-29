@@ -515,7 +515,21 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
         } else if (strcmp(argv[i], "--batch-output=tsv") == 0) {
             args->batch_output_tsv = 1;
         } else if (strncmp(argv[i], "--extract-with=", 15) == 0) {
-            args->extract_with = strdup(argv[i] + 15);
+            const char* cmd = argv[i] + 15;
+            // Validate: reject dangerous shell metacharacters
+            int safe = 1;
+            for (const char* p = cmd; *p && safe; p++) {
+                if (*p == ';' || *p == '|' || *p == '&' || *p == '$' ||
+                    *p == '`' || *p == '(' || *p == ')' || *p == '<' ||
+                    *p == '>' || *p == '\n' || *p == '\r') {
+                    safe = 0;
+                }
+            }
+            if (!safe) {
+                fprintf(stderr, "Error: --extract-with contains dangerous characters\n");
+                return -1;
+            }
+            args->extract_with = strdup(cmd);
         } else if (strncmp(argv[i], "--skip-archive=", 15) == 0) {
             args->skip_archive = strdup(argv[i] + 15);
         } else if (strncmp(argv[i], "--max-archive-depth=", 20) == 0) {

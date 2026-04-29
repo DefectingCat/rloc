@@ -40,10 +40,16 @@ VcsType vcs_detect(const char* path) {
 char** vcs_get_files_git(const char* repo_path, int* n_files) {
     *n_files = 0;
 
+    // Escape repo_path for shell safety
+    char* escaped_repo = escape_shell_arg(repo_path);
+    if (!escaped_repo) return NULL;
+
     // Build git ls-files command
     // Using -z for null-separated output to handle filenames with spaces
     char cmd[2048];
-    snprintf(cmd, sizeof(cmd), "cd '%s' && git ls-files -z 2>/dev/null", repo_path);
+    snprintf(cmd, sizeof(cmd), "cd %s && git ls-files -z 2>/dev/null", escaped_repo);
+
+    free(escaped_repo);
 
     FILE* fp = popen(cmd, "r");
     if (!fp) {
@@ -127,10 +133,16 @@ char** vcs_get_files_git(const char* repo_path, int* n_files) {
 char** vcs_get_files_svn(const char* repo_path, int* n_files) {
     *n_files = 0;
 
+    // Escape repo_path for shell safety
+    char* escaped_repo = escape_shell_arg(repo_path);
+    if (!escaped_repo) return NULL;
+
     // Build svn list command
     // svn list -R lists all files recursively (relative paths)
     char cmd[2048];
-    snprintf(cmd, sizeof(cmd), "cd '%s' && svn list -R 2>/dev/null", repo_path);
+    snprintf(cmd, sizeof(cmd), "cd %s && svn list -R 2>/dev/null", escaped_repo);
+
+    free(escaped_repo);
 
     FILE* fp = popen(cmd, "r");
     if (!fp) {
@@ -252,9 +264,21 @@ char** vcs_get_files_at_commit(const char* repo_path, const char* commit, int* n
     *n_files = 0;
     if (!repo_path || !commit) return NULL;
 
+    // Escape arguments for shell safety
+    char* escaped_repo = escape_shell_arg(repo_path);
+    char* escaped_commit = escape_shell_arg(commit);
+    if (!escaped_repo || !escaped_commit) {
+        free(escaped_repo);
+        free(escaped_commit);
+        return NULL;
+    }
+
     char cmd[2048];
-    snprintf(cmd, sizeof(cmd), "cd '%s' && git ls-tree -r --name-only '%s' 2>/dev/null", repo_path,
-             commit);
+    snprintf(cmd, sizeof(cmd), "cd %s && git ls-tree -r --name-only %s 2>/dev/null",
+             escaped_repo, escaped_commit);
+
+    free(escaped_repo);
+    free(escaped_commit);
 
     FILE* fp = popen(cmd, "r");
     if (!fp) return NULL;
@@ -324,9 +348,24 @@ char* vcs_get_file_at_commit(const char* repo_path, const char* commit, const ch
     *content_len = 0;
     if (!repo_path || !commit || !filepath) return NULL;
 
+    // Escape arguments for shell safety
+    char* escaped_repo = escape_shell_arg(repo_path);
+    char* escaped_commit = escape_shell_arg(commit);
+    char* escaped_filepath = escape_shell_arg(filepath);
+    if (!escaped_repo || !escaped_commit || !escaped_filepath) {
+        free(escaped_repo);
+        free(escaped_commit);
+        free(escaped_filepath);
+        return NULL;
+    }
+
     char cmd[2048];
-    snprintf(cmd, sizeof(cmd), "cd '%s' && git show '%s:%s' 2>/dev/null", repo_path, commit,
-             filepath);
+    snprintf(cmd, sizeof(cmd), "cd %s && git show %s:%s 2>/dev/null",
+             escaped_repo, escaped_commit, escaped_filepath);
+
+    free(escaped_repo);
+    free(escaped_commit);
+    free(escaped_filepath);
 
     FILE* fp = popen(cmd, "r");
     if (!fp) return NULL;
@@ -364,9 +403,21 @@ char* vcs_get_file_at_commit(const char* repo_path, const char* commit, const ch
 
 // Validate that a git reference (commit, branch, tag) is valid in the given repo
 static int vcs_validate_git_ref(const char* repo_path, const char* ref) {
+    char* escaped_repo = escape_shell_arg(repo_path);
+    char* escaped_ref = escape_shell_arg(ref);
+    if (!escaped_repo || !escaped_ref) {
+        free(escaped_repo);
+        free(escaped_ref);
+        return 0;
+    }
+
     char cmd[2048];
-    snprintf(cmd, sizeof(cmd), "cd '%s' && git rev-parse --verify '%s' 2>/dev/null", repo_path,
-             ref);
+    snprintf(cmd, sizeof(cmd), "cd %s && git rev-parse --verify %s 2>/dev/null",
+             escaped_repo, escaped_ref);
+
+    free(escaped_repo);
+    free(escaped_ref);
+
     FILE* fp = popen(cmd, "r");
     if (!fp) return 0;
     char buf[64];
@@ -385,25 +436,41 @@ char** vcs_get_changed_files(const char* repo, const char* ref1, const char* ref
         return NULL;
     }
 
+    // Escape arguments for shell safety
+    char* escaped_repo = escape_shell_arg(repo);
+    char* escaped_ref1 = escape_shell_arg(ref1);
+    char* escaped_ref2 = escape_shell_arg(ref2);
+    if (!escaped_repo || !escaped_ref1 || !escaped_ref2) {
+        free(escaped_repo);
+        free(escaped_ref1);
+        free(escaped_ref2);
+        return NULL;
+    }
+
     // Build git diff command
     char cmd[2048];
     int cmd_len = 0;
-    cmd_len = snprintf(cmd, sizeof(cmd), "cd '%s' && git diff --name-status", repo);
+    cmd_len = snprintf(cmd, sizeof(cmd), "cd %s && git diff --name-status", escaped_repo);
 
     // Apply flags
     if (flags & VCS_DIFF_IGNORE_WHITESPACE) {
         cmd_len += snprintf(cmd + cmd_len, sizeof(cmd) - cmd_len, " -w");
     }
 
-    cmd_len += snprintf(cmd + cmd_len, sizeof(cmd) - cmd_len, " '%s' '%s' 2>/dev/null", ref1, ref2);
+    cmd_len += snprintf(cmd + cmd_len, sizeof(cmd) - cmd_len, " %s %s 2>/dev/null",
+                        escaped_ref1, escaped_ref2);
 
     if (flags & VCS_DIFF_INCLUDE_SUBMODULES) {
         // Append submodule diff output
         cmd_len += snprintf(cmd + cmd_len, sizeof(cmd) - cmd_len,
-                            " && cd '%s' && git diff --name-status -w --ignore-submodules=none "
-                            "'%s' '%s' 2>/dev/null",
-                            repo, ref1, ref2);
+                            " && cd %s && git diff --name-status -w --ignore-submodules=none "
+                            "%s %s 2>/dev/null",
+                            escaped_repo, escaped_ref1, escaped_ref2);
     }
+
+    free(escaped_repo);
+    free(escaped_ref1);
+    free(escaped_ref2);
 
     FILE* fp = popen(cmd, "r");
     if (!fp) return NULL;
@@ -513,9 +580,24 @@ char** vcs_get_diff_files(const char* repo_path, const char* commit1, const char
     *n_files = 0;
     if (!repo_path || !commit1 || !commit2) return NULL;
 
+    // Escape arguments for shell safety
+    char* escaped_repo = escape_shell_arg(repo_path);
+    char* escaped_commit1 = escape_shell_arg(commit1);
+    char* escaped_commit2 = escape_shell_arg(commit2);
+    if (!escaped_repo || !escaped_commit1 || !escaped_commit2) {
+        free(escaped_repo);
+        free(escaped_commit1);
+        free(escaped_commit2);
+        return NULL;
+    }
+
     char cmd[2048];
-    snprintf(cmd, sizeof(cmd), "cd '%s' && git diff --name-status '%s' '%s' 2>/dev/null", repo_path,
-             commit1, commit2);
+    snprintf(cmd, sizeof(cmd), "cd %s && git diff --name-status %s %s 2>/dev/null",
+             escaped_repo, escaped_commit1, escaped_commit2);
+
+    free(escaped_repo);
+    free(escaped_commit1);
+    free(escaped_commit2);
 
     FILE* fp = popen(cmd, "r");
     if (!fp) return NULL;
