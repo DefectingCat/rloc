@@ -2,17 +2,50 @@
 
 #include <dirent.h>
 #include <fnmatch.h>
+#include <limits.h>
 #include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "util.h"
 
 #define INITIAL_CAPACITY 32
 #define PATTERN_CAPACITY 32
+#define DEFAULT_MAX_DEPTH 256
+
+/* Check if symlink target is within base directory (prevents escape attacks) */
+static bool is_symlink_safe(const char* symlink_path, const char* base_dir) {
+    char target_path[PATH_MAX];
+    char base_real[PATH_MAX];
+
+    /* Resolve symlink target */
+    if (!realpath(symlink_path, target_path)) {
+        return false;  /* Cannot resolve - skip */
+    }
+
+    /* Resolve base directory (may not exist on first call, use provided path) */
+    if (!realpath(base_dir, base_real)) {
+        /* Base dir might not exist yet, use provided path as fallback */
+        snprintf(base_real, sizeof(base_real), "%s", base_dir);
+    }
+
+    /* Check if target starts with base_dir path */
+    size_t base_len = strlen(base_real);
+    if (strncmp(target_path, base_real, base_len) != 0) {
+        return false;  /* Target is outside base directory */
+    }
+
+    /* Ensure exact match or subdirectory (target_path[base_len] should be '/' or '\0') */
+    if (target_path[base_len] != '\0' && target_path[base_len] != '/') {
+        return false;
+    }
+
+    return true;
+}
 
 /* Known source code extensions - these are always text files */
 static const char* text_extensions[] = {
@@ -135,8 +168,16 @@ void filelist_free(FileList* list) {
     list->capacity = 0;
 }
 
-int filelist_scan(const char* path, const FilelistConfig* config, FileList* list) {
+/* Internal recursive scan with depth tracking and symlink validation */
+static int filelist_scan_internal(const char* path, const FilelistConfig* config, FileList* list, int depth, const char* base_dir) {
     if (!path || !list) {
+        return -1;
+    }
+
+    /* Check depth limit */
+    int max_depth = (config && config->max_depth > 0) ? config->max_depth : DEFAULT_MAX_DEPTH;
+    if (depth > max_depth) {
+        fprintf(stderr, "Warning: maximum directory depth (%d) exceeded at: %s\n", max_depth, path);
         return -1;
     }
 
@@ -207,6 +248,12 @@ int filelist_scan(const char* path, const FilelistConfig* config, FileList* list
                 free(full_path);
                 continue;
             }
+            /* Validate symlink target is within base directory */
+            if (!is_symlink_safe(full_path, base_dir)) {
+                fprintf(stderr, "Warning: symlink escapes base directory, skipping: %s\n", full_path);
+                free(full_path);
+                continue;
+            }
         }
 
         if (is_dir) {
@@ -235,7 +282,7 @@ int filelist_scan(const char* path, const FilelistConfig* config, FileList* list
                 continue;
             }
 
-            filelist_scan(full_path, config, list);
+            filelist_scan_internal(full_path, config, list, depth + 1, base_dir);
             free(full_path);
         } else if (is_regular) {
             if (config && config->max_file_size > 0) {
@@ -301,6 +348,16 @@ int filelist_scan(const char* path, const FilelistConfig* config, FileList* list
 
     closedir(dir);
     return 0;
+}
+
+int filelist_scan(const char* path, const FilelistConfig* config, FileList* list) {
+    /* Resolve base directory for symlink validation */
+    char base_dir[PATH_MAX];
+    if (!realpath(path, base_dir)) {
+        /* If realpath fails, use the provided path as base */
+        snprintf(base_dir, sizeof(base_dir), "%s", path);
+    }
+    return filelist_scan_internal(path, config, list, 0, base_dir);
 }
 
 int filelist_load_exclude_patterns(const char* filepath, FilelistConfig* config) {

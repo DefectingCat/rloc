@@ -42,4 +42,8 @@ int buffer_reserve(Buffer* buf, size_t min_capacity);
 /* Shell argument escaping for safe popen() usage */
 char* escape_shell_arg(const char* input);
 
+/* Safe integer parsing with bounds checking */
+int safe_parse_int(const char* str, int* result, int min_val, int max_val);
+long safe_parse_long(const char* str, long* result, long min_val, long max_val);
+
 #endif

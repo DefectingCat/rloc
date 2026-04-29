@@ -111,8 +111,8 @@ bin/test_output_runner: tests/test_output.c tests/test_framework.c output.c coun
 bin/test_lang_defs_runner: tests/test_lang_defs.c tests/test_framework.c language.c lang_defs.c | $(BINDIR)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_lang_defs.c tests/test_framework.c language.c lang_defs.c
 
-bin/test_phase4_runner: tests/test_phase4.c tests/test_framework.c cli.c | $(BINDIR)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_phase4.c tests/test_framework.c cli.c
+bin/test_phase4_runner: tests/test_phase4.c tests/test_framework.c cli.c util.c | $(BINDIR)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ tests/test_phase4.c tests/test_framework.c cli.c util.c
 
 bin/test_coro_scanner_runner: tests/test_coro_scanner.c tests/test_framework.c coro_scanner.c filelist.c util.c $(COCO_SOURCES) | $(BINDIR)
 	$(CC) $(CFLAGS) $(COCO_CFLAGS) $(INCLUDES) $(COCO_INCLUDES) -o $@ tests/test_coro_scanner.c tests/test_framework.c coro_scanner.c filelist.c util.c $(COCO_SOURCES)

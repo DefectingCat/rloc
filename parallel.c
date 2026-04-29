@@ -126,9 +126,15 @@ int parallel_count_files(ParallelInputFile* files, int n_files, ParallelConfig* 
     int chunk_size = (n_files + config->n_workers - 1) / config->n_workers;
     if (chunk_size < 10) chunk_size = 10;
 
-    // Create pipes for each worker
-    int pipes[config->n_workers][2];
-    pid_t pids[config->n_workers];
+    // Allocate pipes and pids dynamically (avoid VLA for stack safety)
+    int (*pipes)[2] = malloc(config->n_workers * sizeof(int[2]));
+    pid_t* pids = malloc(config->n_workers * sizeof(pid_t));
+    if (!pipes || !pids) {
+        free(pipes);
+        free(pids);
+        *n_results = 0;
+        return -1;
+    }
 
     // Block SIGCHLD temporarily
     sigset_t mask, oldmask;
@@ -218,6 +224,10 @@ int parallel_count_files(ParallelInputFile* files, int n_files, ParallelConfig* 
 
     // Restore signal mask
     sigprocmask(SIG_SETMASK, &oldmask, NULL);
+
+    // Free dynamically allocated arrays
+    free(pipes);
+    free(pids);
 
     *n_results = total_count;
     return total_count;

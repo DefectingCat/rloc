@@ -1,11 +1,13 @@
 #include "cli.h"
 
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "diff.h"
 #include "lang_defs.h"
+#include "util.h"
 #include "version.h"
 
 int cli_parse(int argc, char** argv, CliArgs* args) {
@@ -213,7 +215,13 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
                 return -1;
             }
         } else if (strncmp(argv[i], "--max-file-size=", 16) == 0) {
-            args->max_file_size_mb = atol(argv[i] + 16);
+            long val;
+            if (safe_parse_long(argv[i] + 16, &val, 0, LONG_MAX) != 0) {
+                fprintf(stderr, "Error: Invalid value for --max-file-size\n");
+                free(args->input_files);
+                return -1;
+            }
+            args->max_file_size_mb = val;
         } else if (strncmp(argv[i], "--exclude-dir=", 14) == 0) {
             // Parse comma-separated directories
             // Use a dummy tokenization on a copy since argv is const
@@ -416,8 +424,8 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
             }
             free(ext_str);
         } else if (strncmp(argv[i], "--max-temp-size=", 16) == 0) {
-            long mb = atol(argv[i] + 16);
-            if (mb > 0) {
+            long mb;
+            if (safe_parse_long(argv[i] + 16, &mb, 1, 10240) == 0) {
                 args->max_temp_size = (size_t)mb * 1024 * 1024;
             }
         } else if (strncmp(argv[i], "--sdir=", 7) == 0) {
@@ -466,8 +474,11 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
             }
             free(spec);
         } else if (strncmp(argv[i], "--progress-rate=", 16) == 0) {
-            args->progress_rate = atoi(argv[i] + 16);
-            if (args->progress_rate < 1) args->progress_rate = 1;
+            int rate;
+            if (safe_parse_int(argv[i] + 16, &rate, 1, 1000) != 0) {
+                rate = 1;  // Default to 1 on invalid input
+            }
+            args->progress_rate = rate;
         } else if (strcmp(argv[i], "--show-lang") == 0) {
             args->show_lang = 1;
         } else if (strncmp(argv[i], "--show-lang=", 12) == 0) {
@@ -489,7 +500,10 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
         } else if (strncmp(argv[i], "--config=", 9) == 0) {
             args->config_file = strdup(argv[i] + 9);
         } else if (strncmp(argv[i], "--processes=", 12) == 0) {
-            args->processes = atoi(argv[i] + 12);
+            int procs;
+            if (safe_parse_int(argv[i] + 12, &procs, 1, 256) == 0) {
+                args->processes = procs;
+            }
         } else if (strcmp(argv[i], "--threads") == 0) {
             // Check mutual exclusion with --coro
             if (explicit_parallel_mode == 3) {
@@ -533,7 +547,10 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
         } else if (strncmp(argv[i], "--skip-archive=", 15) == 0) {
             args->skip_archive = strdup(argv[i] + 15);
         } else if (strncmp(argv[i], "--max-archive-depth=", 20) == 0) {
-            args->max_archive_depth = atoi(argv[i] + 20);
+            int depth;
+            if (safe_parse_int(argv[i] + 20, &depth, 0, 100) == 0) {
+                args->max_archive_depth = depth;
+            }
         } else if (strncmp(argv[i], "--git=", 6) == 0) {
             args->git_ref = strdup(argv[i] + 6);
         } else if (strncmp(argv[i], "--list-file=", 12) == 0) {
@@ -553,9 +570,15 @@ int cli_parse(int argc, char** argv, CliArgs* args) {
         } else if (strncmp(argv[i], "--exclude-content=", 18) == 0) {
             args->exclude_content = strdup(argv[i] + 18);
         } else if (strncmp(argv[i], "--timeout=", 10) == 0) {
-            args->timeout_sec = atoi(argv[i] + 10);
+            int timeout;
+            if (safe_parse_int(argv[i] + 10, &timeout, 1, 3600) == 0) {
+                args->timeout_sec = timeout;
+            }
         } else if (strncmp(argv[i], "--diff-timeout=", 15) == 0) {
-            args->diff_timeout_sec = atoi(argv[i] + 15);
+            int diff_timeout;
+            if (safe_parse_int(argv[i] + 15, &diff_timeout, 1, 3600) == 0) {
+                args->diff_timeout_sec = diff_timeout;
+            }
         } else if (strncmp(argv[i], "--ignore-regex=", 15) == 0) {
             // Format: LANG|REGEX or *|REGEX
             char* spec = strdup(argv[i] + 15);

@@ -14,6 +14,7 @@ typedef struct {
     char* not_match_d_pattern;  // Regex pattern for --not-match-d
     int fullpath;               // Match full path instead of basename
     int follow_links;           // Follow symlinks to directories
+    int max_depth;              // Maximum recursion depth (0 = unlimited, default 256)
 } FilelistConfig;
 
 typedef struct {

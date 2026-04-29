@@ -1,10 +1,13 @@
 #define _POSIX_C_SOURCE 200809L
 #include "config.h"
 
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "util.h"
 
 /* Helper: append comma-separated values to existing string array */
 static int append_csv_to_array(const char* csv, char*** array, int* count) {
@@ -131,13 +134,20 @@ int config_load(const char* filepath, CliArgs* args) {
         } else if (value) {
             /* Value options */
             if (strcmp(key, "--max-file-size") == 0) {
-                args->max_file_size_mb = atol(value);
+                long mb;
+                if (safe_parse_long(value, &mb, 0, LONG_MAX / (1024 * 1024)) == 0) {
+                    args->max_file_size_mb = mb;
+                }
             } else if (strcmp(key, "--max-temp-size") == 0) {
-                long mb = atol(value);
-                if (mb > 0) args->max_temp_size = (size_t)mb * 1024 * 1024;
+                long mb;
+                if (safe_parse_long(value, &mb, 1, LONG_MAX / (1024 * 1024)) == 0) {
+                    args->max_temp_size = (size_t)mb * 1024 * 1024;
+                }
             } else if (strcmp(key, "--progress-rate") == 0) {
-                args->progress_rate = atoi(value);
-                if (args->progress_rate < 1) args->progress_rate = 1;
+                int rate;
+                if (safe_parse_int(value, &rate, 1, INT_MAX) == 0) {
+                    args->progress_rate = rate;
+                }
             } else if (strcmp(key, "--skip-leading") == 0) {
                 char* comma = strchr(value, ',');
                 if (comma) {

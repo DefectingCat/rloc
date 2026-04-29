@@ -265,3 +265,33 @@ char* escape_shell_arg(const char* input) {
 
     return escaped;
 }
+
+/* === Safe Integer Parsing === */
+
+int safe_parse_int(const char* str, int* result, int min_val, int max_val) {
+    if (!str || !result) return -1;
+
+    char* endptr;
+    long val = strtol(str, &endptr, 10);
+
+    // Check for parsing errors
+    if (*endptr != '\0') return -1;  // Non-numeric characters
+    if (val < min_val || val > max_val) return -1;  // Out of bounds
+
+    *result = (int)val;
+    return 0;
+}
+
+long safe_parse_long(const char* str, long* result, long min_val, long max_val) {
+    if (!str || !result) return -1;
+
+    char* endptr;
+    long val = strtol(str, &endptr, 10);
+
+    // Check for parsing errors
+    if (*endptr != '\0') return -1;  // Non-numeric characters
+    if (val < min_val || val > max_val) return -1;  // Out of bounds
+
+    *result = val;
+    return 0;
+}
