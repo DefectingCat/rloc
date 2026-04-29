@@ -473,3 +473,37 @@ int count_file_with_lang(const char* filepath, const Language* lang, int skip_li
     free(buffer);
     return 0;
 }
+
+/* === Counter Interface Implementation === */
+
+static int counter_default_init(CounterInterface* self) {
+    (void)self;
+    return 0;
+}
+
+int counter_default_count_file(CounterInterface* self, const char* filepath,
+                               const Language* lang, int skip_lines, CountResult* result) {
+    (void)self;
+    return count_file_with_lang(filepath, lang, skip_lines, result);
+}
+
+void counter_default_count_lines(CounterInterface* self, const char* src, size_t len,
+                                  const Language* lang, int skip_lines, CountResult* result) {
+    (void)self;
+    count_lines_with_lang(src, len, lang, skip_lines, result);
+}
+
+static void counter_default_free(CounterInterface* self) {
+    (void)self;
+}
+
+CounterInterface* counter_default_new(void) {
+    static CounterInterface default_counter = {
+        .init = counter_default_init,
+        .count_file = counter_default_count_file,
+        .count_lines = counter_default_count_lines,
+        .free = counter_default_free,
+        .data = NULL
+    };
+    return &default_counter;
+}

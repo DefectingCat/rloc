@@ -3,14 +3,8 @@
 
 #include <stddef.h>
 
+#include "counter_interface.h"
 #include "language.h"
-
-typedef struct {
-    int blank;
-    int comment;
-    int code;
-    int total;
-} CountResult;
 
 // Legacy functions (no language awareness)
 int count_file(const char* filepath, CountResult* result);
@@ -21,5 +15,11 @@ int count_file_with_lang(const char* filepath, const Language* lang, int skip_li
                          CountResult* result);
 void count_lines_with_lang(const char* src, size_t len, const Language* lang, int skip_lines,
                            CountResult* result);
+
+// Counter interface implementation for default counter
+int counter_default_count_file(CounterInterface* self, const char* filepath,
+                               const Language* lang, int skip_lines, CountResult* result);
+void counter_default_count_lines(CounterInterface* self, const char* src, size_t len,
+                                  const Language* lang, int skip_lines, CountResult* result);
 
 #endif
