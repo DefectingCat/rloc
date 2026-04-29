@@ -20,6 +20,28 @@ void vcs_ops_init(VcsOpsContext* ctx, const CliArgs* args, TempManager* temp_mgr
     ctx->error_count = 0;
 }
 
+// Check if path contains any excluded directory segment
+static int path_contains_excluded_dir(const char* path, const CliArgs* args) {
+    if (!args->exclude_dirs || args->n_exclude_dirs == 0) return 0;
+
+    // Copy path to avoid modifying the original
+    char path_copy[2048];
+    snprintf(path_copy, sizeof(path_copy), "%s", path);
+
+    // Check each path segment
+    char* saveptr = NULL;
+    char* segment = strtok_r(path_copy, "/", &saveptr);
+    while (segment != NULL) {
+        for (int i = 0; i < args->n_exclude_dirs; i++) {
+            if (strcmp(segment, args->exclude_dirs[i]) == 0) {
+                return 1;
+            }
+        }
+        segment = strtok_r(NULL, "/", &saveptr);
+    }
+    return 0;
+}
+
 int vcs_ops_handle_git_ref(VcsOpsContext* ctx) {
     const CliArgs* args = ctx->args;
     FileList* filelist = ctx->filelist;
@@ -112,6 +134,11 @@ int vcs_ops_handle_vcs(VcsOpsContext* ctx) {
             }
 
             for (int j = 0; j < n_vcs_files; j++) {
+                // Check if path is in excluded directory
+                if (path_contains_excluded_dir(vcs_files[j], args)) {
+                    continue;
+                }
+
                 char full[2048];
                 snprintf(full, sizeof(full), "%s/%s", path, vcs_files[j]);
                 filelist_append(filelist, full);
