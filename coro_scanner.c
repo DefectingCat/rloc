@@ -68,6 +68,11 @@ static void scan_dir_sequential(scan_context_t *ctx) {
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
             continue;
 
+        // 检查目录是否应该被排除
+        if (is_excluded_dir(entry->d_name, ctx->config)) {
+            continue;
+        }
+
         char full_path[PATH_MAX];
         snprintf(full_path, sizeof(full_path), "%s/%s", ctx->path, entry->d_name);
 
@@ -141,6 +146,11 @@ void scan_dir_coro(void *arg) {
         }
 
         if (d_type == DT_DIR) {
+            // 检查目录是否应该被排除
+            if (is_excluded_dir(entry->d_name, ctx->config)) {
+                continue;
+            }
+
             // 符号链接目录处理：遵循 --follow-links 配置
             if (!ctx->follow_links && entry->d_type == DT_LNK) {
                 continue;  // 跳过符号链接目录
