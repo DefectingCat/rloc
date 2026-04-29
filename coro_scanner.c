@@ -201,7 +201,7 @@ int coro_scan_directory(const char *root_path, const FilelistConfig *config, Fil
         return -1;
     }
 
-    coco_channel_t *file_channel = coco_channel_create(1000);  // 缓冲 1000 条目
+    coco_channel_t *file_channel = coco_channel_create(2048);  // 缓冲 2048 条目
     if (!file_channel) {
         fprintf(stderr, "Error: failed to create file channel\n");
         coco_sched_destroy(sched);
@@ -215,10 +215,11 @@ int coro_scan_directory(const char *root_path, const FilelistConfig *config, Fil
         .done = false
     };
 
-    // 启动收集器协程
-    coco_create(sched, collector_coro, &collector_ctx, SCAN_CORO_STACK_SIZE);
+    // 启动收集器协程 - 高优先级
+    coco_coro_t *collector = coco_create(sched, collector_coro, &collector_ctx, SCAN_CORO_STACK_SIZE);
+    coco_set_priority(collector, COCO_PRIORITY_HIGH);
 
-    // 启动根目录扫描协程
+    // 启动根目录扫描协程 - 低优先级
     atomic_int scan_coros_count = ATOMIC_VAR_INIT(0);
     scan_context_t *root_ctx = create_scan_context(sched, root_path, file_channel, &scan_coros_count, config);
     if (!root_ctx) {
@@ -227,7 +228,8 @@ int coro_scan_directory(const char *root_path, const FilelistConfig *config, Fil
         coco_sched_destroy(sched);
         return -1;
     }
-    coco_create(sched, scan_dir_coro, root_ctx, SCAN_CORO_STACK_SIZE);
+    coco_coro_t *scanner = coco_create(sched, scan_dir_coro, root_ctx, SCAN_CORO_STACK_SIZE);
+    coco_set_priority(scanner, COCO_PRIORITY_LOW);
 
     // 运行调度器直到所有协程完成
     while (!collector_ctx.done) {
