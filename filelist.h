@@ -36,4 +36,7 @@ int filelist_load_exclude_patterns(const char* filepath, FilelistConfig* config)
 // Free exclude patterns loaded by filelist_load_exclude_patterns
 void filelist_free_exclude_patterns(FilelistConfig* config);
 
+// Check if directory name is in exclude list
+int is_excluded_dir(const char* dir_name, const FilelistConfig* config);
+
 #endif

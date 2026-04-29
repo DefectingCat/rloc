@@ -94,7 +94,8 @@ void filelist_append(FileList* list, const char* path) {
     filelist_add_internal(list, path);
 }
 
-static int is_excluded_dir(const char* dir_name, const FilelistConfig* config) {
+// Check if directory name is in exclude list (public API)
+int is_excluded_dir(const char* dir_name, const FilelistConfig* config) {
     if (!config || !config->exclude_dirs) {
         return 0;
     }
