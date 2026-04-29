@@ -3,13 +3,10 @@
 #include "counter.h"
 #include "diff.h"
 #include "language.h"
+#include "output_writer.h"
 
-typedef struct {
-    const char* filepath;
-    const Language* lang;  // Language pointer (was: const char *language)
-    CountResult counts;
-    const char* ignore_reason;  // NULL if counted, otherwise reason
-} FileStats;
+/* FileStats structure (reuses OutputFileStats from output_writer.h) */
+typedef OutputFileStats FileStats;
 
 // Output results as text table (default cloc-like format)
 // elapsed_sec: time taken for processing
