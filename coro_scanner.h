@@ -23,8 +23,8 @@ typedef struct collector_context {
     volatile bool done;
 } collector_context_t;
 
-// 栈大小配置
-#define SCAN_CORO_STACK_SIZE (16 * 1024)
+// 栈大小配置 - 使用 coco 栈池 size class
+#define SCAN_CORO_STACK_SIZE COCO_STACK_SMALL  // 16KB
 
 // 深度和并发限制
 #define MAX_SCAN_DEPTH 256
