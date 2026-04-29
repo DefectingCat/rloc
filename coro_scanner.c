@@ -201,6 +201,19 @@ int coro_scan_directory(const char *root_path, const FilelistConfig *config, Fil
         return -1;
     }
 
+    // io_uring 配置 (Linux 5.1+ 专属，macOS 自动跳过)
+#if defined(__linux__)
+    coco_io_options_t io_opts = {
+        .queue_depth = 256,
+        .sqpoll_enabled = true,
+        .sqpoll_idle_ms = 1000,
+    };
+    if (coco_sched_set_io_options(sched, &io_opts) == COCO_OK) {
+        coco_sched_set_io_backend(sched, COCO_IO_BACKEND_IOURING);
+        // Fallback 自动处理: 失败时使用 epoll
+    }
+#endif
+
     coco_channel_t *file_channel = coco_channel_create(2048);  // 缓冲 2048 条目
     if (!file_channel) {
         fprintf(stderr, "Error: failed to create file channel\n");
