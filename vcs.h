@@ -23,6 +23,10 @@ typedef struct {
 // Caller must free returned array with vcs_free_files()
 char** vcs_get_files_git(const char* repo_path, int* n_files);
 
+// Get file list from git repository with optional submodule recursion
+// If include_submodules is non-zero, uses --recurse-submodules
+char** vcs_get_files_git_ex(const char* repo_path, int include_submodules, int* n_files);
+
 // Get file list from SVN repository using svn list -R
 // Returns array of file paths, sets n_files count
 // Caller must free returned array with vcs_free_files()

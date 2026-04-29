@@ -18,7 +18,11 @@ static int is_dir(const char* path) {
 int vcs_is_git_repo(const char* path) {
     char git_path[1024];
     snprintf(git_path, sizeof(git_path), "%s/.git", path);
-    return is_dir(git_path);
+
+    // Check if .git exists as either a directory (normal repo) or file (submodule)
+    struct stat st;
+    if (stat(git_path, &st) != 0) return 0;
+    return S_ISDIR(st.st_mode) || S_ISREG(st.st_mode);
 }
 
 int vcs_is_svn_repo(const char* path) {
@@ -38,6 +42,10 @@ VcsType vcs_detect(const char* path) {
 }
 
 char** vcs_get_files_git(const char* repo_path, int* n_files) {
+    return vcs_get_files_git_ex(repo_path, 0, n_files);
+}
+
+char** vcs_get_files_git_ex(const char* repo_path, int include_submodules, int* n_files) {
     *n_files = 0;
 
     // Escape repo_path for shell safety
@@ -47,7 +55,14 @@ char** vcs_get_files_git(const char* repo_path, int* n_files) {
     // Build git ls-files command
     // Using -z for null-separated output to handle filenames with spaces
     char cmd[2048];
-    snprintf(cmd, sizeof(cmd), "cd %s && git ls-files -z 2>/dev/null", escaped_repo);
+    int cmd_len = snprintf(cmd, sizeof(cmd), "cd %s && git ls-files -z", escaped_repo);
+
+    // Add --recurse-submodules if requested
+    if (include_submodules) {
+        cmd_len += snprintf(cmd + cmd_len, sizeof(cmd) - cmd_len, " --recurse-submodules");
+    }
+
+    snprintf(cmd + cmd_len, sizeof(cmd) - cmd_len, " 2>/dev/null");
 
     free(escaped_repo);
 

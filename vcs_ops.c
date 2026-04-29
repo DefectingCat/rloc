@@ -122,7 +122,7 @@ int vcs_ops_handle_vcs(VcsOpsContext* ctx) {
             int n_vcs_files = 0;
             char** vcs_files = NULL;
             if (effective_vcs == VCS_GIT)
-                vcs_files = vcs_get_files_git(path, &n_vcs_files);
+                vcs_files = vcs_get_files_git_ex(path, args->include_submodules, &n_vcs_files);
             else if (effective_vcs == VCS_SVN)
                 vcs_files = vcs_get_files_svn(path, &n_vcs_files);
 
@@ -141,6 +141,13 @@ int vcs_ops_handle_vcs(VcsOpsContext* ctx) {
 
                 char full[2048];
                 snprintf(full, sizeof(full), "%s/%s", path, vcs_files[j]);
+
+                // Skip submodule directories (git ls-files returns submodule path as entry)
+                // A submodule has .git as a file (not directory) pointing to parent's .git/modules/
+                if (is_directory(full)) {
+                    continue;
+                }
+
                 filelist_append(filelist, full);
             }
             vcs_free_files(vcs_files, n_vcs_files);
