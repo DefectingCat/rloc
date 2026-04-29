@@ -164,6 +164,16 @@ void scan_dir_coro(void *arg) {
 
     closedir(dir);
 
+    // 栈使用监控 (DEBUG 模式)
+#ifdef DEBUG
+    size_t stack_used = coco_get_stack_usage(coco_self());
+    if (stack_used > SCAN_CORO_STACK_SIZE / 2) {
+        fprintf(stderr, "Debug: coro %lu stack usage: %zu bytes (%.1f%%)\n",
+                coco_get_id(coco_self()), stack_used,
+                (double)stack_used / SCAN_CORO_STACK_SIZE * 100);
+    }
+#endif
+
     // 递减扫描协程计数，如果是最后一个则关闭 channel
     if (atomic_fetch_sub(ctx->scan_coros_count, 1) == 1) {
         coco_channel_close(ctx->file_channel);
